@@ -1,0 +1,40 @@
+{
+  "summary": "First-finish smoke test for AI Medical Diagnosis Assistant. All 16 backend checks and full frontend E2E flow (landing → register → dashboard → diagnose → report → reports list → logout → protected-route redirect) pass. AI predict endpoint returns 3-4 diseases with confidence, causes, medicines, home remedies, diet, precautions, and doctor guidance. Emergency warning correctly populated for chest pain + shortness of breath.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "GET /api/ health returns 200 with message",
+    "POST /api/auth/register creates patient, returns JWT + user (role=patient)",
+    "Duplicate register returns 400",
+    "POST /api/auth/login returns token + user",
+    "Wrong password returns 401",
+    "GET /api/auth/me with Bearer 200, without token 401",
+    "GET /api/symptoms returns list including Fever, Cough, Headache",
+    "POST /api/predict with cold symptoms returns 4 diseases with all required fields (name/confidence/description/possible_causes/recommended_medicines/home_remedies/diet/precautions/when_to_see_doctor)",
+    "POST /api/predict with Chest Pain + Shortness of Breath returns non-empty emergency_warning (AI-generated)",
+    "POST /api/predict with empty symptoms returns 400",
+    "GET /api/reports returns user's reports (newest first)",
+    "GET /api/reports?q=fever filters correctly",
+    "GET /api/reports/{id} returns 200 for owner",
+    "GET /api/reports/{id} as another user returns 404",
+    "DELETE /api/reports/{id} returns 200; subsequent GET returns 404",
+    "PUT /api/profile returns 200",
+    "Frontend: Landing page has hero-cta-register and hero-cta-login",
+    "Frontend: Register form submits and lands on /dashboard",
+    "Frontend: Dashboard shows stat-total card",
+    "Frontend: /diagnose supports symptom checkboxes, manual add, and submit navigates to /reports/:id",
+    "Frontend: Report detail renders top disease, symptoms, general advice sections",
+    "Frontend: /reports has reports-search-input",
+    "Frontend: nav-logout clears session and returns to /login",
+    "Frontend: /dashboard while unauth redirects to /login"
+  ],
+  "failed": [],
+  "action_items": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true,
+  "notes": [
+    "POST /api/predict response is wrapped as {report: {...}} rather than the report object directly; frontend/tests must read response.data.report.",
+    "AI (Claude Sonnet 4.5) predictions returned in ~15-25s; consider showing a longer loading state hint.",
+    "Test patient email used: uitest_<ts>@test.com; admin creds from /app/memory/test_credentials.md not required for these flows."
+  ]
+}
