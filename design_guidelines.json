@@ -1,0 +1,139 @@
+{
+  "project_name": "AI Medical Diagnosis Assistant",
+  "theme": "Editorial Medical - Slate/Bone/Sea Glass",
+  "brand_identity": {
+    "emotional_tone": "Trust, Calm, Precision, Authority, Care",
+    "vibe": "A perfect amalgam of premium consumer brand sensibility and healthcare. Avoids clinical heaviness. Functions like a wellness lifestyle brand.",
+    "theme_preference": "Light mode by default (nature/wellness relates to light), dark mode optional but should use deep slate rather than pure black."
+  },
+  "typography": {
+    "strategy": "The 'Old Money Tech' Pairing. Mix of serif and sans-serif to create an editorial, non-sterile feel.",
+    "headings": {
+      "family": "Playfair Display",
+      "style": "Serif, sophisticated, human-centered.",
+      "weights": ["400", "700"],
+      "usage": "Use for H1, H2, and major numbers (like confidence scores)."
+    },
+    "body": {
+      "family": "Manrope",
+      "style": "Clean, highly legible geometric sans.",
+      "weights": ["400", "500", "600"],
+      "usage": "Use for all body text, UI elements, and medical descriptions."
+    },
+    "rules": [
+      "H1 (Hero): text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-none.",
+      "Never use Inter or Roboto.",
+      "Overlines/Labels: Uppercase + Tiny + Wide Spacing (tracking-[0.2em]).",
+      "Line Height: Tight (leading-none) for headers, Loose (leading-relaxed) for body."
+    ],
+    "install_instructions": "Add Google Fonts imports for Playfair Display and Manrope to index.css or index.html."
+  },
+  "colors": {
+    "strategy": "Archetype: Organic & Earthy meets High-Contrast. Subverting standard medical teal into a sophisticated 'Sea Glass' green-blue, paired with deep navy and bone white.",
+    "palette": {
+      "background": "hsl(60 9% 98%)",
+      "foreground": "hsl(215 28% 17%)",
+      "primary": "hsl(222 47% 11%)",
+      "primary_foreground": "hsl(210 40% 98%)",
+      "secondary": "hsl(160 20% 90%)",
+      "secondary_foreground": "hsl(222 47% 11%)",
+      "accent": "hsl(210 100% 96%)",
+      "accent_foreground": "hsl(222 47% 11%)",
+      "muted": "hsl(210 40% 96%)",
+      "muted_foreground": "hsl(215 16% 47%)",
+      "destructive": "hsl(0 84% 60%)",
+      "destructive_foreground": "hsl(210 40% 98%)",
+      "border": "hsl(214 32% 91%)",
+      "input": "hsl(214 32% 91%)",
+      "ring": "hsl(222 47% 11%)",
+      "card": "hsl(0 0% 100%)",
+      "card_foreground": "hsl(215 28% 17%)"
+    },
+    "rules": [
+      "Update tailwind.config.js and index.css with these HSL values.",
+      "No full-screen gradients.",
+      "Never use pure black or pure gray. Always tint neutrals.",
+      "Avoid #1B93A4 (Teal Green) for primary dashboard components, use soft Sea Glass instead."
+    ]
+  },
+  "layouts": {
+    "landing_page": {
+      "strategy": "The 'Tetris' Grid (Asymmetry, Visual Tension).",
+      "grid": "grid-cols-1 md:grid-cols-12 gap-8",
+      "hero": "Max overlay opacity: bg-black/40. Image must breathe. Typography must overlap slightly to create depth."
+    },
+    "dashboard": {
+      "strategy": "High Density Grid, Modular UI, F-Pattern Prioritization.",
+      "grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "rules": [
+        "Top-left must contain the 'North Star' (e.g., most recent diagnosis).",
+        "Every pixel utilized, use h-full on children.",
+        "Solid surfaces. NO Glassmorphism for health data to prevent visual refraction.",
+        "Widgets use 'Clay & Crisp' Neumorphism: flat background matching parent exactly, 1px border-border, subtle ambient shadow."
+      ]
+    },
+    "spacing": "Generous Spacing. p-6 or p-8 for cards. p-12 to p-24 for page sections. Containers with borders must have internal padding to prevent collision."
+  },
+  "components": {
+    "buttons": "Pill-shaped or rounded-lg with clear hover states (translate-y-[-1px], shadow-md).",
+    "symptom_entry": "Multi-select Command palette + Checkbox groups. Implement search + manual entry. Must include checkboxes for common symptoms: Fever, Cough, Headache, Vomiting, Chest Pain, Fatigue, Sore Throat, Body Pain, Nausea, Diarrhea, Shortness of Breath.",
+    "diagnosis_card": "Actionable 'Next Best Action' layout. Include: disease name (Large Serif), confidence bar, causes, OTC medicines, home remedies, diet, precautions, when to visit doctor, emergency warning.",
+    "report_history": "Clean table or dense list (Shadcn Table/ScrollArea). Must include view, delete, and search functionality.",
+    "dashboard": "Patient Dashboard must include health stats summary cards, recent reports, and quick link to new diagnosis.",
+    "medical_disclaimer": "Banner at the top or sticky bottom. Muted background, high contrast text.",
+    "icons": "Use @phosphor-icons/react for Duotone weight. Run: yarn add @phosphor-icons/react"
+  },
+  "surfaces_and_visual_enhancers": {
+    "headers": "Solid Background with a hard bottom border for medical dashboards. No transparent headers.",
+    "cards": "Subtle roundness (max 8px border-radius), flat off-white background, 1px delicate inner stroke, soft shadow.",
+    "textures": "Subtle grain texture overlay on the landing page to kill digital flatness."
+  },
+  "motion": {
+    "rules": [
+      "Hover states for all interactive elements (transition: transform 0.2s ease, opacity 0.2s ease).",
+      "Do NOT use 'transition: all'.",
+      "Entrance animations: Staggered fade-up for diagnosis results and report history list.",
+      "Respect 'prefers-reduced-motion'."
+    ]
+  },
+  "media": {
+    "image_urls": [
+      {
+        "url": "https://images.unsplash.com/photo-1782397132123-0166b524d6bc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBjbGluaWMlMjBpbnRlcmlvciUyMGNhbG0lMjBsaWdodGluZ3xlbnwwfHx8fDE3ODM1MTIwMzZ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "A clean, modern medical examination room with a patient chair.",
+        "category": "Landing Page Hero Background or 'About Us' section"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1665231795856-769fb08a90bc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBjbGluaWMlMjBpbnRlcmlvciUyMGNhbG0lMjBsaWdodGluZ3xlbnwwfHx8fDE3ODM1MTIwMzZ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "A calm room with a desk.",
+        "category": "Patient Dashboard Welcome Area"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1597496610123-889e0aab4816?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2Mzl8MHwxfHNlYXJjaHwyfHxtZWRpY2FsJTIwdGVjaG5vbG9neSUyMGFic3RyYWN0JTIwYmx1ZSUyMHRvbmV8ZW58MHx8fHwxNzgzNTEyMDM3fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Blue and white abstract painting.",
+        "category": "Auth pages split-screen background or decorative card backgrounds."
+      }
+    ],
+    "rules": "No placeholder URLs. Use provided images. Ensure text overlay on images has adequate contrast (bg-black/40 overlay)."
+  },
+  "accessibility": {
+    "contrast": "APCA preferred. Normal text min 4.5:1. Interactive elements 3:1.",
+    "focus": "Focus states must have HIGHER contrast than default (e.g., focus:ring-2 focus:ring-primary).",
+    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., data-testid='symptom-submit-button', data-testid='diagnosis-confidence')."
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid 'AI slop' aesthetic.",
+    "Since the project uses .js files, ensure all React components and Shadcn components are implemented in .js/.jsx, not .tsx. Do not output TypeScript.",
+    "Do not make generic centered layouts. Create depth through layered design elements with z-index hierarchy.",
+    "Do not use dark colors as gradients.",
+    "Never apply 'transition: all'. Explicitly state transitions.",
+    "Never center align the app container (.App { text-align: center; } is banned).",
+    "Use modern button styles (pill-shaped or crisp 8px rounded) with interaction animations.",
+    "Never use AI assistant emojis for icons. Use Phosphor Icons.",
+    "Prioritize Shadcn components in src/components/ui but customize them per the color and border rules.",
+    "Use 'sonner' for toasts.",
+    "Do NOT use HTML-based components for advanced user interactions (dropdown, calendar, toast).",
+    "Implement a theme toggle (Light/Dark). Light is primary for clinical trust.",
+    "Ensure the Medical Disclaimer is prominently visible but non-intrusive."
+  ]
+}
