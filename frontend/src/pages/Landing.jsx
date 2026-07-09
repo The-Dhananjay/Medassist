@@ -69,7 +69,7 @@ export default function Landing() {
                   <Sparkles className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-primary">Powered by Claude Sonnet 4.5</div>
+                  <div className="text-sm font-semibold text-primary">Powered by gemini-2.5-flash </div>
                   <div className="text-xs text-muted-foreground">Careful medical reasoning, structured results.</div>
                 </div>
               </div>
