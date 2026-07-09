@@ -18,14 +18,15 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-
+from google import genai
 # ---------- Config ----------
 MONGO_URL = os.environ['MONGO_URL']
 DB_NAME = os.environ['DB_NAME']
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
-EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+
+gemini = genai.Client(api_key=GEMINI_API_KEY)
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
@@ -318,16 +319,15 @@ Additional notes: {payload.additional_notes or 'none'}
 Return ONLY the JSON object as specified. No markdown code fences."""
 
     try:
-        if not EMERGENT_LLM_KEY:
-            raise RuntimeError("EMERGENT_LLM_KEY not configured")
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"diag-{uuid.uuid4()}",
-            system_message=DIAGNOSIS_SYSTEM_PROMPT,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        response = await chat.send_message(UserMessage(text=user_prompt))
-        text = response if isinstance(response, str) else str(response)
-        text = text.strip()
+       response = gemini.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=[
+        DIAGNOSIS_SYSTEM_PROMPT,
+        user_prompt
+    ],
+)
+
+text = response.text.strip()
         if text.startswith("```"):
             # strip code fences
             text = text.strip("`")
