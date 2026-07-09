@@ -4,7 +4,7 @@
   "private": true,
 
   "engines": {
-  "node": "20.x"
+  "node": "24.x"
 },
   "dependencies": {
     "@hookform/resolvers": "5.0.1",
