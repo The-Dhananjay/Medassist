@@ -318,33 +318,41 @@ Additional notes: {payload.additional_notes or 'none'}
 
 Return ONLY the JSON object as specified. No markdown code fences."""
 
-    try:
-       response = gemini.models.generate_content(
-    model="gemini-2.5-flash",
-    contents=[
-        DIAGNOSIS_SYSTEM_PROMPT,
-        user_prompt
-    ],
-)
+try:
+    response = gemini.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[
+            DIAGNOSIS_SYSTEM_PROMPT,
+            user_prompt,
+        ],
+    )
 
-text = response.text.strip()
-        if text.startswith("```"):
-            # strip code fences
-            text = text.strip("`")
-            if text.lower().startswith("json"):
-                text = text[4:].strip()
-        # find first { and last }
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1:
-            text = text[start : end + 1]
-        parsed = json.loads(text)
-        if "disclaimer" not in parsed:
-            parsed["disclaimer"] = "This prediction is AI-generated and not a replacement for professional medical advice."
-        return parsed
-    except Exception as e:
-        logger.warning(f"AI diagnosis failed, using fallback: {e}")
-        return rule_based_fallback(payload.symptoms)
+    text = response.text.strip()
+
+    if text.startswith("```"):
+        # strip code fences
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+
+    start = text.find("{")
+    end = text.rfind("}")
+
+    if start != -1 and end != -1:
+        text = text[start:end + 1]
+
+    parsed = json.loads(text)
+
+    if "disclaimer" not in parsed:
+        parsed["disclaimer"] = (
+            "This prediction is AI-generated and not a replacement for professional medical advice."
+        )
+
+    return parsed
+
+except Exception as e:
+    logger.warning(f"AI diagnosis failed, using fallback: {e}")
+    return rule_based_fallback(payload.symptoms)
 
 
 @api.post("/predict")
