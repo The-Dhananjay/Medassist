@@ -444,9 +444,9 @@ app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=os.environ["CORS_ORIGINS"].split(","),
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
@@ -454,9 +454,9 @@ app.add_middleware(
 async def startup():
     await db.users.create_index("email", unique=True)
     await db.reports.create_index("user_id")
-    # Seed admin
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@medassist.ai").lower()
-    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+    # Seed admin    
+    admin_email = os.environ["ADMIN_EMAIL"].lower()
+    admin_password = os.environ["ADMIN_PASSWORD"]
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
         await db.users.insert_one({
