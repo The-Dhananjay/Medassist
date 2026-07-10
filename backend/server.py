@@ -89,13 +89,17 @@ def verify_password(pw: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: str, email: str, role: str) -> str:
-    payload = {
-        "sub": user_id,
-        "email": email,
-        "role": role,
-        "type": "access",
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
-    }
+    now = datetime.now(timezone.utc)
+
+payload = {
+    "sub": user_id,
+    "email": email,
+    "role": role,
+    "type": "access",
+    "iat": now,
+    "nbf": now,
+    "exp": now + timedelta(days=7),
+}
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
