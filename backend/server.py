@@ -1069,14 +1069,19 @@ def _send_email_sync(subject: str, recipients: list[str], html_body: str) -> Non
     message.add_alternative(html_body, subtype="html")
 
     context = ssl.create_default_context()
+
     try:
-        with smtplib.SMTP_SSL(
+        with smtplib.SMTP(
             settings.mail_server,
             settings.mail_port,
             timeout=20,
         ) as smtp:
+            smtp.ehlo()
+            smtp.starttls(context=context)
+            smtp.ehlo()
             smtp.login(settings.mail_username, settings.mail_password)
             smtp.send_message(message)
+
     except smtplib.SMTPException as exc:
         logger.warning(f"SMTP email send failed: {exc}")
         raise HTTPException(

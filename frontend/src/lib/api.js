@@ -49,10 +49,20 @@ async function refreshSession() {
 
 api.interceptors.request.use((config) => {
   if (!config.headers) config.headers = {};
+
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   if (shouldAttachCsrf(config.method)) {
     const csrfToken = readCookie("csrf_token");
-    if (csrfToken) config.headers["X-CSRF-Token"] = csrfToken;
+    if (csrfToken) {
+      config.headers["X-CSRF-Token"] = csrfToken;
+    }
   }
+
   return config;
 });
 

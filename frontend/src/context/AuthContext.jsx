@@ -25,10 +25,14 @@ export function AuthProvider({ children }) {
   }, [refresh]);
 
   const login = async (email, password) => {
-    const { data } = await api.post("/auth/login", { email, password });
-    setUser(data.user);
-    return data;
-  };
+  const { data } = await api.post("/auth/login", { email, password });
+
+  localStorage.setItem("token", data.token);
+
+  setUser(data.user);
+
+  return data;
+};
 
   const register = async (payload) => {
     const { data } = await api.post("/auth/register", payload);
@@ -36,13 +40,15 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch {
-      // ignore logout transport errors so the UI can still clear local state
-    }
-    setUser(null);
-  };
+  try {
+    await api.post("/auth/logout");
+  } catch {
+    // ignore logout transport errors so the UI can still clear local state
+  }
+
+  localStorage.removeItem("token");
+  setUser(null);
+};
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout, refresh, setUser }}>
