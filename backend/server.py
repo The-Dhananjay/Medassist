@@ -156,6 +156,16 @@ def set_auth_cookie(response: Response, token: str):
 @api.post("/auth/register")
 async def register(payload: RegisterInput, response: Response):
     email = payload.email.lower().strip()
+    if len(payload.password) < 8:
+    raise HTTPException(
+        status_code=400,
+        detail="Password must be at least 8 characters long"
+    )
+    if len(payload.name.strip()) < 2:
+    raise HTTPException(
+        status_code=400,
+        detail="Name is too short"
+    )
     exists = await db.users.find_one({"email": email})
     if exists:
         raise HTTPException(status_code=400, detail="Email already registered")
