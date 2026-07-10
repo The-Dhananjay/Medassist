@@ -8,18 +8,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
     try {
       const { data } = await api.get("/auth/me");
       setUser(data.user);
+      return data.user;
     } catch {
-      localStorage.removeItem("token");
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -31,21 +26,21 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
-    localStorage.setItem("token", data.token);
     setUser(data.user);
-    return data.user;
+    return data;
   };
 
   const register = async (payload) => {
     const { data } = await api.post("/auth/register", payload);
-    localStorage.setItem("token", data.token);
-    setUser(data.user);
-    return data.user;
+    return data;
   };
 
   const logout = async () => {
-    try { await api.post("/auth/logout"); } catch { /* ignore */ }
-    localStorage.removeItem("token");
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // ignore logout transport errors so the UI can still clear local state
+    }
     setUser(null);
   };
 
