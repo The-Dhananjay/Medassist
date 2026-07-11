@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -11,8 +20,11 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Monitor,
+  MoonStar,
   Plus,
   Stethoscope,
+  SunMedium,
   UserRound,
 } from "lucide-react";
 
@@ -75,6 +87,45 @@ function Brand({ textVisibility = "always" }) {
         </div>
       ) : null}
     </Link>
+  );
+}
+
+function ThemeControl({ compact = false, onThemeChange }) {
+  const { theme = "light", setTheme } = useTheme();
+  const currentTheme = theme || "light";
+  const ThemeIcon =
+    currentTheme === "dark" ? MoonStar : currentTheme === "system" ? Monitor : SunMedium;
+  const label =
+    currentTheme === "dark" ? "Dark" : currentTheme === "system" ? "System" : "Light";
+
+  const handleThemeChange = (value) => {
+    setTheme(value);
+    onThemeChange?.();
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className={cn(
+            "h-auto w-full rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-primary",
+            compact ? "justify-center px-0 lg:justify-start lg:px-3" : "justify-start"
+          )}
+        >
+          <ThemeIcon className="h-4 w-4 shrink-0" />
+          <span className={compact ? "hidden lg:inline" : undefined}>Theme: {label}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={compact ? "start" : "end"} sideOffset={8} className="w-44">
+        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={currentTheme} onValueChange={handleThemeChange}>
+          <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -148,15 +199,18 @@ export default function Navbar() {
               {navItems.map((item) => renderNavItem(item, true))}
             </nav>
 
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              data-testid="nav-logout"
-              className={cn(itemClass(false, true), "h-auto w-full")}
-            >
-              <LogOut className="h-4 w-4 shrink-0" />
-              <span className="hidden lg:inline">Logout</span>
-            </Button>
+            <div className="space-y-1">
+              <ThemeControl compact onThemeChange={() => setMobileOpen(false)} />
+              <Button
+                variant="ghost"
+                onClick={handleLogout}
+                data-testid="nav-logout"
+                className={cn(itemClass(false, true), "h-auto w-full")}
+              >
+                <LogOut className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">Logout</span>
+              </Button>
+            </div>
           </div>
         </aside>
 
@@ -176,7 +230,8 @@ export default function Navbar() {
                 {navItems.map((item) => renderNavItem(item))}
               </nav>
 
-              <div className="border-t border-border p-4">
+              <div className="space-y-1 border-t border-border p-4">
+                <ThemeControl onThemeChange={() => setMobileOpen(false)} />
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
