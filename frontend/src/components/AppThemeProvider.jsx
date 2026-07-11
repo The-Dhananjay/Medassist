@@ -4,9 +4,9 @@ export default function AppThemeProvider({ children }) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="light"
+      storageKey="medassist-theme"
       enableSystem
-      disableTransitionOnChange
     >
       {children}
     </ThemeProvider>

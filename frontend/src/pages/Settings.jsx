@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Globe2, LogOut, MailCheck, MoonStar, ShieldAlert, Trash2 } from "lucide-react";
+import { Bell, Globe2, LogOut, MailCheck, Monitor, MoonStar, ShieldAlert, SunMedium, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import AppShell from "@/components/AppShell";
@@ -15,10 +15,14 @@ import { defaultPreferences, loadPreferences, savePreferences } from "@/lib/pref
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { setTheme, theme = "system" } = useTheme();
+  const { setTheme, theme = "light" } = useTheme();
   const { setUser } = useAuth();
   const [preferences, setPreferences] = useState(defaultPreferences);
   const [busy, setBusy] = useState("");
+
+  const selectedTheme = theme || "light";
+  const ThemeIcon =
+    selectedTheme === "dark" ? MoonStar : selectedTheme === "system" ? Monitor : SunMedium;
 
   useEffect(() => {
     setPreferences(loadPreferences());
@@ -76,8 +80,11 @@ export default function Settings() {
               Keep MedAssist aligned with your device or switch between light and dark mode manually.
             </p>
 
-            <div className="mt-5">
-              <Select value={theme} onValueChange={setTheme}>
+            <div className="mt-5 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-primary">
+                <ThemeIcon className="h-4 w-4" />
+              </div>
+              <Select value={selectedTheme} onValueChange={setTheme}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Choose theme" />
                 </SelectTrigger>

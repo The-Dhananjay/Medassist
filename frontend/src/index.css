@@ -62,6 +62,11 @@
         font-family: 'Manrope', system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
     }
+    body, body *, body *::before, body *::after {
+        transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+        transition-duration: 200ms;
+        transition-timing-function: ease;
+    }
     h1, h2, .font-serif {
         font-family: 'Playfair Display', serif;
     }
