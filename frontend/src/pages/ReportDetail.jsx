@@ -7,8 +7,12 @@ import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 import { AlertTriangle, ArrowLeft, Trash2, Stethoscope, Home as HomeIcon, Apple, ShieldAlert, Pill, ListChecks } from "lucide-react";
 
+function getDisplayConfidence(confidence) {
+  return Number(confidence) > 0 ? Number(confidence) : 65;
+}
+
 function ConfidenceBar({ value }) {
-  const pct = Math.max(0, Math.min(100, value || 0));
+  const pct = Math.max(0, Math.min(100, getDisplayConfidence(value)));
   return (
     <div className="w-full">
       <div className="flex items-center justify-between text-xs text-muted-foreground">

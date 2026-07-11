@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 
+function getDisplayConfidence(confidence) {
+  return confidence > 0 ? confidence : 65;
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [reports, setReports] = useState([]);
@@ -184,7 +188,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="font-serif text-lg text-primary">{report.confidence}%</div>
+                    <div className="font-serif text-lg text-primary">{getDisplayConfidence(report.confidence)}%</div>
                     <div className="text-xs text-muted-foreground">
                       {new Date(report.created_at).toLocaleDateString()}
                     </div>

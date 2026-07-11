@@ -134,7 +134,7 @@ Return only valid JSON with this schema:
   "possible_diseases": [
     {
       "name": "string",
-      "confidence": 0,
+      "confidence": 75,
       "description": "string",
       "possible_causes": ["string"],
       "recommended_medicines": ["string"],
@@ -157,6 +157,29 @@ Rules:
 - If symptoms suggest an emergency, still return the condition list and set emergency_warning clearly.
 - Keep language simple and safe for a non-clinician reader.
 - Do not include markdown, backticks, commentary, or extra keys.
+Confidence Score Rules:
+
+- Every predicted disease MUST include a confidence score.
+- Confidence must ALWAYS be an integer between 35 and 95.
+- Never return 0.
+- Never omit the confidence field.
+- Confidence should reflect how well the symptoms match the disease.
+
+If only one disease is highly likely, still return a realistic confidence between 70 and 95.
+
+If symptoms are insufficient or ambiguous, still estimate confidence between 35 and 60.
+
+Never return null, 0, empty string, or omit the confidence field.
+
+The confidence value must always be an integer.
+
+Guidelines:
+- Very weak match: 35-50
+- Possible match: 51-65
+- Moderate match: 66-80
+- Strong match: 81-95
+
+Do not use 100% confidence because this is not a confirmed medical diagnosis.
 """.strip()
 
 EMERGENCY_PATTERNS: tuple[tuple[set[str], str], ...] = (

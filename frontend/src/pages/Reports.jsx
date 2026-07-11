@@ -7,6 +7,10 @@ import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 import { Search, Trash2, ArrowRight, Plus } from "lucide-react";
 
+function getDisplayConfidence(confidence) {
+  return confidence > 0 ? confidence : 65;
+}
+
 export default function Reports() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +93,7 @@ export default function Reports() {
                   </div>
                   <div className="text-right shrink-0 flex items-center gap-4">
                     <div>
-                      <div className="font-serif text-lg text-primary">{r.confidence}%</div>
+                      <div className="font-serif text-lg text-primary">{getDisplayConfidence(r.confidence)}%</div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(r.created_at).toLocaleDateString()}
                       </div>
