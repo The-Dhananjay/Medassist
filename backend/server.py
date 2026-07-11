@@ -6,14 +6,12 @@ import logging
 import os
 import re
 import secrets
-import smtplib
-import ssl
 import sys
 import time
 import uuid
+import requests
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
 from pathlib import Path
 from typing import Any, Literal
 
@@ -209,11 +207,8 @@ class Settings(BaseModel):
     cookie_samesite: Literal["lax", "none"] = "lax"
     trusted_hosts: tuple[str, ...] = ("*",)
     frontend_url: str | None = None
-    mail_username: str | None = None
-    mail_password: str | None = None
+    brevo_api_key: str | None = None
     mail_from: str | None = None
-    mail_server: str | None = None
-    mail_port: int | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -241,11 +236,8 @@ class Settings(BaseModel):
             cookie_samesite="none" if environment == "production" else "lax",
             trusted_hosts=build_trusted_hosts(environment),
             frontend_url=frontend_url,
-            mail_username=get_optional_env("MAIL_USERNAME"),
-            mail_password=get_optional_env("MAIL_PASSWORD"),
+            brevo_api_key=get_optional_env("BREVO_API_KEY"),
             mail_from=get_optional_env("MAIL_FROM"),
-            mail_server=get_optional_env("MAIL_SERVER"),
-            mail_port=parse_optional_int_env("MAIL_PORT"),
         )
 
 
@@ -259,13 +251,6 @@ def get_required_env(name: str) -> str:
 def get_optional_env(name: str) -> str | None:
     value = os.getenv(name, "").strip()
     return value or None
-
-
-def parse_optional_int_env(name: str) -> int | None:
-    raw_value = os.getenv(name, "").strip()
-    if not raw_value:
-        return None
-    return int(raw_value)
 
 
 def parse_origins(raw_value: str) -> list[str]:
@@ -1043,52 +1028,65 @@ def build_user_document(payload: RegisterInput) -> dict[str, Any]:
 
 def ensure_mail_configured() -> None:
     required_values = (
-        settings.mail_username,
-        settings.mail_password,
+        settings.brevo_api_key,
         settings.mail_from,
-        settings.mail_server,
-        settings.mail_port,
     )
     if not all(required_values):
         raise HTTPException(
             status_code=500,
-            detail="Email delivery is not configured. Add the MAIL_* environment variables.",
+            detail="Email delivery is not configured. Add BREVO_API_KEY and MAIL_FROM.",
         )
 
 
 def _send_email_sync(subject: str, recipients: list[str], html_body: str) -> None:
     ensure_mail_configured()
+    logger.info(f"DOTENV PATH: {ROOT_DIR / '.env'}")
+    logger.info(f"DOTENV EXISTS: {(ROOT_DIR / '.env').exists()}")
+    logger.info("BREVO ENV NAME: BREVO_API_KEY")
+    logger.info(f"BREVO KEY PREFIX: {settings.brevo_api_key[:20]}")
+    logger.info(f"MAIL FROM: {settings.mail_from}")
 
-    message = EmailMessage()
-    message["Subject"] = subject
-    message["From"] = settings.mail_from
-    message["To"] = ", ".join(recipients)
-    message.set_content(
-        "This email contains HTML content. Please use an HTML-compatible email client."
+    payload = {
+        "sender": {
+            "name": "MedAssist",
+            "email": settings.mail_from,
+        },
+        "to": [{"email": email} for email in recipients],
+        "subject": subject,
+        "htmlContent": html_body,
+    }
+
+    masked_api_key = f"{settings.brevo_api_key[:10]}..."
+    headers = {
+        "accept": "application/json",
+        "api-key": settings.brevo_api_key,
+        "content-type": "application/json",
+    }
+    logged_headers = {
+        "accept": "application/json",
+        "api-key": masked_api_key,
+        "content-type": "application/json",
+    }
+    logger.info("BREVO REQUEST URL: https://api.brevo.com/v3/smtp/email")
+    logger.info(f"BREVO REQUEST HEADERS: {logged_headers}")
+    logger.info(f"BREVO REQUEST PAYLOAD: {payload}")
+
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        json=payload,
+        headers=headers,
+        timeout=20,
     )
-    message.add_alternative(html_body, subtype="html")
+    logger.info(f"BREVO RESPONSE STATUS: {response.status_code}")
+    logger.info(f"BREVO RESPONSE TEXT: {response.text}")
 
-    context = ssl.create_default_context()
-
-    try:
-        with smtplib.SMTP(
-            settings.mail_server,
-            settings.mail_port,
-            timeout=20,
-        ) as smtp:
-            smtp.ehlo()
-            smtp.starttls(context=context)
-            smtp.ehlo()
-            smtp.login(settings.mail_username, settings.mail_password)
-            smtp.send_message(message)
-
-    except smtplib.SMTPException as exc:
-        logger.warning(f"SMTP email send failed: {exc}")
+    if response.status_code >= 400:
+        logger.error(f"Brevo status code: {response.status_code}")
+        logger.error(f"Brevo response text: {response.text}")
         raise HTTPException(
             status_code=500,
-            detail="Failed to send email. Please try again later.",
-        ) from exc
-
+            detail=f"Brevo Error: {response.text}",
+        )
 
 async def send_email(subject: str, recipients: list[str], html_body: str) -> None:
     await asyncio.to_thread(_send_email_sync, subject, recipients, html_body)
