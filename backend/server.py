@@ -283,7 +283,12 @@ def parse_origins(raw_value: str) -> list[str]:
         origins = [str(item).strip() for item in parsed]
     else:
         origins = [item.strip() for item in value.split(",")]
-    return [origin for origin in origins if origin]
+    native_app_origins = ["https://app.medassist.local"]
+    merged_origins = [origin for origin in origins if origin]
+    for origin in native_app_origins:
+        if origin not in merged_origins:
+            merged_origins.append(origin)
+    return merged_origins
 
 
 def build_trusted_hosts(environment: str) -> tuple[str, ...]:

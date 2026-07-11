@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/context/AuthContext";
+import { clearAuthToken } from "@/lib/authStorage";
 import api, { formatApiError } from "@/lib/api";
 import { defaultPreferences, loadPreferences, savePreferences } from "@/lib/preferences";
 
@@ -42,7 +43,7 @@ export default function Settings() {
     setBusy("logout-all");
     try {
       await api.delete("/auth/sessions/all");
-      localStorage.removeItem("token");
+      await clearAuthToken();
       setUser(null);
       toast.success("All devices signed out.");
       navigate("/login");

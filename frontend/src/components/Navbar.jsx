@@ -212,7 +212,7 @@ export default function Navbar() {
   if (showAppNavigation) {
     return (
       <>
-        <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 pl-[var(--app-safe-left)] pr-[var(--app-safe-right)] pt-[var(--app-safe-top)] backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
           <div className="flex h-16 items-center justify-between px-4 sm:px-5">
             <Button
               variant="ghost"
@@ -270,7 +270,7 @@ export default function Navbar() {
         </aside>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="w-[260px] border-r border-border bg-background p-0 sm:max-w-[260px]">
+          <SheetContent side="left" className="w-[260px] border-r border-border bg-background p-0 pb-[var(--app-safe-bottom)] sm:max-w-[260px]">
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
               <SheetDescription>Open MedAssist pages and account actions.</SheetDescription>
@@ -304,7 +304,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 pl-[var(--app-safe-left)] pr-[var(--app-safe-right)] pt-[var(--app-safe-top)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2" data-testid="nav-logo">
           <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">

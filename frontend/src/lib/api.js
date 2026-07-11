@@ -1,4 +1,5 @@
 import axios from "axios";
+import { clearAuthToken, getAuthToken, setAuthToken } from "@/lib/authStorage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API_BASE = `${BACKEND_URL}/api`;
@@ -40,6 +41,13 @@ async function refreshSession() {
   if (!refreshPromise) {
     refreshPromise = api
       .post("/auth/refresh", {}, { skipAuthRefresh: true })
+      .then(async (response) => {
+        const refreshedToken = response?.data?.token;
+        if (refreshedToken) {
+          await setAuthToken(refreshedToken);
+        }
+        return response;
+      })
       .finally(() => {
         refreshPromise = null;
       });
@@ -47,10 +55,10 @@ async function refreshSession() {
   return refreshPromise;
 }
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   if (!config.headers) config.headers = {};
 
-  const token = localStorage.getItem("token");
+  const token = await getAuthToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -78,7 +86,12 @@ api.interceptors.response.use(
     const canRetry =
       response.status === 401 && !config._retry && !config.skipAuthRefresh && !excluded;
 
-    if (!canRetry) throw error;
+    if (!canRetry) {
+      if (response.status === 401) {
+        await clearAuthToken().catch(() => {});
+      }
+      throw error;
+    }
 
     config._retry = true;
     await refreshSession();

@@ -1,5 +1,6 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import CapacitorBridge from "@/components/native/CapacitorBridge";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -27,6 +28,7 @@ function App() {
     <div className="App">
       <AuthProvider>
         <BrowserRouter>
+          <CapacitorBridge />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />

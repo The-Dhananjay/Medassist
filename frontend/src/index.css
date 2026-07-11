@@ -6,6 +6,11 @@
 
 @layer base {
     :root {
+        --app-safe-top: env(safe-area-inset-top, 0px);
+        --app-safe-right: env(safe-area-inset-right, 0px);
+        --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+        --app-safe-left: env(safe-area-inset-left, 0px);
+        --app-mobile-header-height: 4rem;
         --background: 60 9% 98%;
         --foreground: 215 28% 17%;
         --card: 0 0% 100%;
@@ -61,6 +66,9 @@
         @apply bg-background text-foreground;
         font-family: 'Manrope', system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
+    }
+    html, body, #root {
+        min-height: 100%;
     }
     body, body *, body *::before, body *::after {
         transition-property: background-color, border-color, color, fill, stroke, box-shadow;

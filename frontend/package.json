@@ -6,6 +6,15 @@
     "node": "24.x"
   },
   "dependencies": {
+    "@aparajita/capacitor-secure-storage": "^8.0.0",
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@hookform/resolvers": "5.0.1",
     "@radix-ui/react-accordion": "1.2.8",
     "@radix-ui/react-alert-dialog": "1.1.11",
@@ -67,7 +76,15 @@
   "scripts": {
     "start": "craco start",
     "build": "craco build",
-    "test": "craco test"
+    "test": "craco test",
+    "cap:assets": "npx @capacitor/assets generate --iconBackgroundColor #f7f8f2 --iconBackgroundColorDark #0f172a --splashBackgroundColor #f7f8f2 --splashBackgroundColorDark #0f172a --logoSplashScale 0.22",
+    "cap:copy": "npx cap copy",
+    "cap:sync": "npx cap sync",
+    "cap:build": "npm run build && npm run cap:sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:run:android": "npm run cap:build && npx cap run android",
+    "cap:run:ios": "npm run cap:build && npx cap run ios"
   },
   "browserslist": {
     "production": [
@@ -83,6 +100,8 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "7.21.11",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.1",
     "@craco/craco": "7.1.0",
     "@emergentbase/visual-edits": "https://assets.emergent.sh/npm/emergentbase-visual-edits-1.0.13.tgz",
     "@eslint/js": "9.23.0",
@@ -100,6 +119,14 @@
     "globals": "15.15.0",
     "postcss": "8.5.10",
     "tailwindcss": "3.4.17"
+  },
+  "capacitor": {
+    "android": {
+      "path": "android"
+    },
+    "ios": {
+      "path": "ios"
+    }
   },
   "resolutions": {
     "react-router": "7.15.0",

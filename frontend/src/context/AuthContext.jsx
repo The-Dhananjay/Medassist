@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
+import { clearAuthToken, hydrateAuthToken, setAuthToken } from "@/lib/authStorage";
 
 const AuthContext = createContext(null);
 
@@ -8,6 +9,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    await hydrateAuthToken();
+
     try {
       const { data } = await api.get("/auth/me");
       setUser(data.user);
@@ -25,14 +28,14 @@ export function AuthProvider({ children }) {
   }, [refresh]);
 
   const login = async (email, password) => {
-  const { data } = await api.post("/auth/login", { email, password });
+    const { data } = await api.post("/auth/login", { email, password });
 
-  localStorage.setItem("token", data.token);
+    await setAuthToken(data.token);
 
-  setUser(data.user);
+    setUser(data.user);
 
-  return data;
-};
+    return data;
+  };
 
   const register = async (payload) => {
     const { data } = await api.post("/auth/register", payload);
@@ -40,15 +43,15 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-  try {
-    await api.post("/auth/logout");
-  } catch {
-    // ignore logout transport errors so the UI can still clear local state
-  }
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // ignore logout transport errors so the UI can still clear local state
+    }
 
-  localStorage.removeItem("token");
-  setUser(null);
-};
+    await clearAuthToken();
+    setUser(null);
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, login, register, logout, refresh, setUser }}>
