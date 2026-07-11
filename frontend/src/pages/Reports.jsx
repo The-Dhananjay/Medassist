@@ -1,25 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowRight, CalendarDays, FileSearch, FilterX, Plus, Search, Trash2 } from "lucide-react";
+
 import AppShell from "@/components/AppShell";
+import EmptyState from "@/components/EmptyState";
+import ReportActionBar from "@/components/ReportActionBar";
+import ReportSeverityBadge from "@/components/ReportSeverityBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/sonner";
+import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
-import { toast } from "sonner";
-import { Search, Trash2, ArrowRight, Plus } from "lucide-react";
-
-function getDisplayConfidence(confidence) {
-  return confidence > 0 ? confidence : 65;
-}
+import { formatReportDate, getSeverityMeta } from "@/lib/reportUtils";
 
 export default function Reports() {
+  const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [q, setQ] = useState("");
+  const [diseaseQuery, setDiseaseQuery] = useState("");
+  const [symptomQuery, setSymptomQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
 
-  const load = async (query = "") => {
+  const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get("/reports", { params: query ? { q: query } : {} });
+      const { data } = await api.get("/reports");
       setReports(data.reports || []);
     } catch (err) {
       toast.error(formatApiError(err));
@@ -28,81 +37,232 @@ export default function Reports() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const del = async (id) => {
     if (!confirm("Delete this report?")) return;
     try {
       await api.delete(`/reports/${id}`);
-      setReports((r) => r.filter((x) => x.id !== id));
-      toast.success("Report deleted");
+      setReports((current) => current.filter((item) => item.id !== id));
+      toast.success("Report deleted.");
     } catch (err) {
       toast.error(formatApiError(err));
     }
   };
 
+  const clearFilters = () => {
+    setDiseaseQuery("");
+    setSymptomQuery("");
+    setDateFilter("");
+    setSeverityFilter("all");
+    setSortBy("newest");
+  };
+
+  const filteredReports = useMemo(() => {
+    const diseaseNeedle = diseaseQuery.trim().toLowerCase();
+    const symptomNeedle = symptomQuery.trim().toLowerCase();
+
+    const next = reports.filter((report) => {
+      const diseaseMatch = diseaseNeedle
+        ? String(report.top_disease || "").toLowerCase().includes(diseaseNeedle)
+        : true;
+
+      const symptomsMatch = symptomNeedle
+        ? (report.symptoms || []).some((symptom) => String(symptom).toLowerCase().includes(symptomNeedle))
+        : true;
+
+      const dateMatch = dateFilter
+        ? new Date(report.created_at).toISOString().slice(0, 10) === dateFilter
+        : true;
+
+      const severityMatch =
+        severityFilter === "all"
+          ? true
+          : getSeverityMeta(report.confidence).slug === severityFilter;
+
+      return diseaseMatch && symptomsMatch && dateMatch && severityMatch;
+    });
+
+    next.sort((left, right) => {
+      if (sortBy === "oldest") {
+        return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+      }
+
+      if (sortBy === "highest-confidence") {
+        return Number(right.confidence || 0) - Number(left.confidence || 0);
+      }
+
+      if (sortBy === "lowest-confidence") {
+        return Number(left.confidence || 0) - Number(right.confidence || 0);
+      }
+
+      return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
+    });
+
+    return next;
+  }, [dateFilter, diseaseQuery, reports, severityFilter, sortBy, symptomQuery]);
+
+  const hasActiveFilters =
+    diseaseQuery || symptomQuery || dateFilter || severityFilter !== "all" || sortBy !== "newest";
+
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-6 py-10 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="overline text-muted-foreground">— Report history</span>
+            <span className="overline text-muted-foreground">Report history</span>
             <h1 className="mt-2 font-serif text-4xl text-primary" data-testid="reports-title">Your reports</h1>
-            <p className="mt-2 text-muted-foreground">Search and revisit past AI assessments.</p>
+            <p className="mt-2 text-muted-foreground">
+              Search by disease or symptoms, refine with filters, and export a polished PDF anytime.
+            </p>
           </div>
           <Link to="/diagnose" data-testid="reports-new-button">
             <Button className="rounded-full px-5">
-              <Plus className="w-4 h-4 mr-1" /> New diagnosis
+              <Plus className="mr-1 h-4 w-4" /> New diagnosis
             </Button>
           </Link>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => { setQ(e.target.value); load(e.target.value); }}
-            placeholder="Search by condition or symptom…"
-            className="pl-9"
-            data-testid="reports-search-input"
-          />
-        </div>
+        <section className="rounded-xl border border-border bg-card p-5">
+          <div className="grid gap-4 lg:grid-cols-[1.2fr,1.2fr,0.8fr,0.9fr,0.9fr]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={diseaseQuery}
+                onChange={(event) => setDiseaseQuery(event.target.value)}
+                placeholder="Search by disease"
+                className="pl-9"
+              />
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={symptomQuery}
+                onChange={(event) => setSymptomQuery(event.target.value)}
+                placeholder="Search by symptoms"
+                className="pl-9"
+              />
+            </div>
+            <div className="relative">
+              <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(event) => setDateFilter(event.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={severityFilter} onValueChange={setSeverityFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Severity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All severities</SelectItem>
+                <SelectItem value="mild">Mild</SelectItem>
+                <SelectItem value="moderate">Moderate</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="critical">Critical Attention</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+                <SelectItem value="highest-confidence">Highest confidence</SelectItem>
+                <SelectItem value="lowest-confidence">Lowest confidence</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <section className="bg-card border border-border rounded-xl overflow-hidden">
+          {hasActiveFilters ? (
+            <div className="mt-4">
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <FilterX className="mr-2 h-4 w-4" /> Clear filters
+              </Button>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="overflow-hidden rounded-xl border border-border bg-card">
           {loading ? (
-            <div className="p-6 text-muted-foreground">Loading reports…</div>
+            <div className="space-y-4 p-5">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="rounded-xl border border-border bg-muted/20 p-5">
+                  <Skeleton className="h-7 w-48" />
+                  <Skeleton className="mt-3 h-4 w-full" />
+                  <Skeleton className="mt-2 h-4 w-2/3" />
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Skeleton className="h-9 w-28" />
+                    <Skeleton className="h-9 w-28" />
+                    <Skeleton className="h-9 w-28" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : reports.length === 0 ? (
-            <div className="p-10 text-center">
-              <p className="text-muted-foreground">No reports yet.</p>
-              <Link to="/diagnose" className="inline-block mt-4">
-                <Button className="rounded-full">Create your first diagnosis</Button>
-              </Link>
+            <div className="p-6">
+              <EmptyState
+                icon={FileSearch}
+                title="No reports yet"
+                description="Start your first diagnosis and MedAssist will build a reusable, downloadable report history here."
+                actionLabel="Create first diagnosis"
+                actionTo="/diagnose"
+              />
+            </div>
+          ) : filteredReports.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                icon={FileSearch}
+                title="Nothing matched those filters"
+                description="Try a broader disease term, remove the date filter, or clear severity constraints to see more report history."
+                actionLabel="Clear filters"
+                action={clearFilters}
+              />
             </div>
           ) : (
             <ul className="divide-y divide-border" data-testid="reports-list">
-              {reports.map((r) => (
-                <li key={r.id} className="p-5 flex items-center justify-between gap-4 hover:bg-muted/40 transition-colors duration-150">
-                  <div className="min-w-0">
-                    <Link to={`/reports/${r.id}`} className="block" data-testid={`report-row-${r.id}`}>
-                      <div className="font-serif text-xl text-primary truncate">{r.top_disease}</div>
-                      <div className="mt-1 text-xs text-muted-foreground truncate">
-                        {(r.symptoms || []).slice(0, 6).join(" · ")}
-                      </div>
-                    </Link>
-                  </div>
-                  <div className="text-right shrink-0 flex items-center gap-4">
-                    <div>
-                      <div className="font-serif text-lg text-primary">{getDisplayConfidence(r.confidence)}%</div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(r.created_at).toLocaleDateString()}
+              {filteredReports.map((report) => (
+                <li
+                  key={report.id}
+                  className="p-5 transition-colors duration-150 hover:bg-muted/35"
+                >
+                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <Link to={`/reports/${report.id}`} className="block" data-testid={`report-row-${report.id}`}>
+                        <div className="font-serif text-2xl text-primary transition-colors duration-150 hover:text-primary/80">
+                          {report.top_disease}
+                        </div>
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          {(report.symptoms || []).slice(0, 6).join(", ")}
+                        </div>
+                      </Link>
+
+                      <div className="mt-4">
+                        <ReportActionBar report={report} user={user} compact />
                       </div>
                     </div>
-                    <Link to={`/reports/${r.id}`} className="text-primary" data-testid={`report-open-${r.id}`}>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <button onClick={() => del(r.id)} className="text-destructive hover:opacity-70" data-testid={`report-delete-${r.id}`}>
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+
+                    <div className="flex flex-col items-start gap-4 lg:items-end">
+                      <ReportSeverityBadge confidence={report.confidence} align="right" />
+                      <div className="text-sm text-muted-foreground">{formatReportDate(report.created_at)}</div>
+                      <div className="flex items-center gap-3">
+                        <Link to={`/reports/${report.id}`} className="text-primary" data-testid={`report-open-${report.id}`}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => del(report.id)}
+                          className="text-destructive transition-opacity duration-150 hover:opacity-70"
+                          data-testid={`report-delete-${report.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </li>
               ))}

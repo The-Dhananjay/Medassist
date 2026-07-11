@@ -4,14 +4,13 @@ import { Activity, ArrowRight, Clock, FileText, MailCheck, ShieldCheck } from "l
 
 import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
+import EmptyState from "@/components/EmptyState";
+import ReportSeverityBadge from "@/components/ReportSeverityBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
-
-function getDisplayConfidence(confidence) {
-  return confidence > 0 ? confidence : 65;
-}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -65,7 +64,11 @@ export default function Dashboard() {
             { icon: Clock, label: "Today", value: todayCount, id: "stat-today" },
             { icon: Activity, label: "Latest condition", value: latest?.top_disease || "-", id: "stat-latest" },
           ].map((stat) => (
-            <div key={stat.id} data-testid={stat.id} className="rounded-xl border border-border bg-card p-6">
+            <div
+              key={stat.id}
+              data-testid={stat.id}
+              className="rounded-xl border border-border bg-card p-6 transition-transform duration-200 hover:-translate-y-0.5"
+            >
               <div className="flex items-center gap-3">
                 <div className="grid h-9 w-9 place-items-center rounded-md bg-secondary">
                   <stat.icon className="h-4 w-4 text-primary" />
@@ -165,10 +168,29 @@ export default function Dashboard() {
           </div>
 
           {loading ? (
-            <div className="mt-6 text-sm text-muted-foreground">Loading...</div>
+            <div className="mt-6 space-y-4">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="flex items-center justify-between gap-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="mt-2 h-4 w-52" />
+                  </div>
+                  <div className="shrink-0">
+                    <Skeleton className="h-8 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : reports.length === 0 ? (
-            <div className="mt-6 text-sm text-muted-foreground">
-              No reports yet. Start with your first diagnosis above.
+            <div className="mt-6">
+              <EmptyState
+                icon={FileText}
+                title="No reports yet"
+                description="Start your first diagnosis and your recent history will appear here with confidence and severity details."
+                actionLabel="Start diagnosis"
+                actionTo="/diagnose"
+                className="p-6"
+              />
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-border">
@@ -187,7 +209,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="font-serif text-lg text-primary">{getDisplayConfidence(report.confidence)}%</div>
+                    <ReportSeverityBadge confidence={report.confidence} compact align="right" />
                     <div className="text-xs text-muted-foreground">
                       {new Date(report.created_at).toLocaleDateString()}
                     </div>

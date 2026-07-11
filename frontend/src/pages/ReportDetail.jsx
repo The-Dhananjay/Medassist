@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { AlertTriangle, Apple, ArrowLeft, Home as HomeIcon, ListChecks, Pill, ShieldAlert, Stethoscope, Trash2, UserRound } from "lucide-react";
+
 import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
+import EmptyState from "@/components/EmptyState";
+import ReportActionBar from "@/components/ReportActionBar";
+import ReportSeverityBadge from "@/components/ReportSeverityBadge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
+import { formatReportDateTime, formatReportValue, getDisplayConfidence } from "@/lib/reportUtils";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeft, Trash2, Stethoscope, Home as HomeIcon, Apple, ShieldAlert, Pill, ListChecks } from "lucide-react";
-
-function getDisplayConfidence(confidence) {
-  return Number(confidence) > 0 ? Number(confidence) : 65;
-}
 
 function ConfidenceBar({ value }) {
   const pct = Math.max(0, Math.min(100, getDisplayConfidence(value)));
@@ -19,11 +22,8 @@ function ConfidenceBar({ value }) {
         <span className="overline">Confidence</span>
         <span className="font-serif text-lg text-primary">{pct}%</span>
       </div>
-      <div className="mt-1 h-2 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full bg-primary transition-[width] duration-500"
-          style={{ width: `${pct}%` }}
-        />
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+        <div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -32,14 +32,17 @@ function ConfidenceBar({ value }) {
 function Section({ icon: Icon, title, items }) {
   if (!items || (Array.isArray(items) && items.length === 0)) return null;
   const list = Array.isArray(items) ? items : [items];
+
   return (
-    <div>
+    <div className="rounded-xl border border-border bg-muted/20 p-4">
       <div className="flex items-center gap-2 text-primary">
-        <Icon className="w-4 h-4" />
+        <Icon className="h-4 w-4" />
         <div className="overline">{title}</div>
       </div>
-      <ul className="mt-2 space-y-1 text-sm text-foreground/90 list-disc pl-5">
-        {list.map((t, i) => <li key={i}>{t}</li>)}
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-foreground/90">
+        {list.map((item, index) => (
+          <li key={`${title}-${index}`}>{item}</li>
+        ))}
       </ul>
     </div>
   );
@@ -48,6 +51,7 @@ function Section({ icon: Icon, title, items }) {
 export default function ReportDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,106 +66,166 @@ export default function ReportDetail() {
     if (!confirm("Delete this report? This cannot be undone.")) return;
     try {
       await api.delete(`/reports/${id}`);
-      toast.success("Report deleted");
+      toast.success("Report deleted.");
       navigate("/reports");
     } catch (err) {
       toast.error(formatApiError(err));
     }
   };
 
-  if (loading) return (
-    <AppShell>
-      <div className="mx-auto max-w-4xl px-6 py-10 text-muted-foreground">Loading report...</div>
-    </AppShell>
-  );
+  if (loading) {
+    return (
+      <AppShell>
+        <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+          <Skeleton className="h-6 w-28" />
+          <Skeleton className="h-14 w-2/3" />
+          <Skeleton className="h-28 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </main>
+      </AppShell>
+    );
+  }
 
-  if (!report) return (
-    <AppShell>
-      <div className="mx-auto max-w-4xl px-6 py-10">
-        <p className="text-muted-foreground">Report not found.</p>
-        <Link to="/reports"><Button variant="link">Back to reports</Button></Link>
-      </div>
-    </AppShell>
-  );
+  if (!report) {
+    return (
+      <AppShell>
+        <main className="mx-auto max-w-4xl px-6 py-10">
+          <EmptyState
+            icon={AlertTriangle}
+            title="Report not found"
+            description="This diagnosis may have been deleted or you may not have permission to view it."
+            actionLabel="Back to reports"
+            actionTo="/reports"
+          />
+        </main>
+      </AppShell>
+    );
+  }
 
-  const pred = report.prediction || {};
-  const diseases = pred.possible_diseases || [];
-  const emergency = pred.emergency_warning;
+  const prediction = report.prediction || {};
+  const diseases = prediction.possible_diseases || [];
+  const emergency = prediction.emergency_warning;
+  const snapshot = report.profile_snapshot || {};
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-4xl px-6 py-10 space-y-8">
-        <div className="flex items-center justify-between gap-4">
-          <Link to="/reports" className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1" data-testid="back-to-reports">
-            <ArrowLeft className="w-4 h-4" /> All reports
+      <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Link
+            to="/reports"
+            className="flex items-center gap-1 text-sm text-muted-foreground transition-colors duration-150 hover:text-primary"
+            data-testid="back-to-reports"
+          >
+            <ArrowLeft className="h-4 w-4" /> All reports
           </Link>
-          <Button variant="ghost" size="sm" onClick={del} data-testid="delete-report-button" className="text-destructive hover:text-destructive">
-            <Trash2 className="w-4 h-4 mr-1" /> Delete
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={del}
+            data-testid="delete-report-button"
+            className="text-destructive hover:text-destructive"
+          >
+            <Trash2 className="mr-1 h-4 w-4" /> Delete
           </Button>
         </div>
 
-        <div>
-          <span className="overline text-muted-foreground">
-            Report · {new Date(report.created_at).toLocaleString()}
-          </span>
-          <h1 className="mt-2 font-serif text-4xl sm:text-5xl text-primary" data-testid="report-title">
-            {report.top_disease}
-          </h1>
-          <div className="mt-3 text-sm text-muted-foreground">
-            <span className="overline mr-2">Symptoms</span>
-            {(report.symptoms || []).join(", ")}
-          </div>
-        </div>
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-3xl">
+              <span className="overline text-muted-foreground">
+                Report · {formatReportDateTime(report.created_at)}
+              </span>
+              <h1 className="mt-2 font-serif text-4xl text-primary sm:text-5xl" data-testid="report-title">
+                {report.top_disease}
+              </h1>
+              <div className="mt-3 text-sm text-muted-foreground">
+                <span className="overline mr-2">Symptoms</span>
+                {(report.symptoms || []).join(", ")}
+              </div>
+            </div>
 
-        {emergency && (
-          <div className="border-2 border-destructive bg-destructive/5 rounded-xl p-5 flex gap-3" data-testid="emergency-warning">
-            <AlertTriangle className="w-6 h-6 text-destructive shrink-0" />
-            <div>
-              <div className="font-serif text-lg text-destructive">Possible emergency</div>
-              <p className="text-sm text-foreground/90 mt-1">{emergency}</p>
+            <div className="space-y-4 lg:min-w-[230px]">
+              <ReportSeverityBadge confidence={report.confidence} align="right" />
+              <ReportActionBar report={report} user={user} />
             </div>
           </div>
-        )}
+        </section>
 
-        {pred.general_advice && (
-          <div className="bg-secondary/60 border border-border rounded-xl p-5">
+        {emergency ? (
+          <div className="flex gap-3 rounded-xl border-2 border-destructive bg-destructive/5 p-5" data-testid="emergency-warning">
+            <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
+            <div>
+              <div className="font-serif text-lg text-destructive">Possible emergency</div>
+              <p className="mt-1 text-sm text-foreground/90">{emergency}</p>
+            </div>
+          </div>
+        ) : null}
+
+        <section className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
+          <div className="rounded-xl border border-border bg-card p-6">
             <div className="overline text-primary">General advice</div>
-            <p className="mt-2 text-sm text-foreground/90">{pred.general_advice}</p>
+            <p className="mt-3 text-sm leading-relaxed text-foreground/90">
+              {prediction.general_advice || "No general advice was returned for this report."}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6">
+            <div className="flex items-center gap-2 text-primary">
+              <UserRound className="h-4 w-4" />
+              <div className="overline">Patient snapshot</div>
+            </div>
+            <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+              <div><span className="font-medium text-primary">Age:</span> {formatReportValue(snapshot.age)}</div>
+              <div><span className="font-medium text-primary">Gender:</span> {formatReportValue(snapshot.gender)}</div>
+              <div><span className="font-medium text-primary">Duration:</span> {formatReportValue(report.duration)}</div>
+              <div><span className="font-medium text-primary">Existing diseases:</span> {formatReportValue(snapshot.existing_diseases)}</div>
+              <div><span className="font-medium text-primary">Current medicines:</span> {formatReportValue(snapshot.current_medicines)}</div>
+              <div><span className="font-medium text-primary">Allergies:</span> {formatReportValue(snapshot.allergies)}</div>
+            </div>
+          </div>
+        </section>
+
+        {diseases.length === 0 ? (
+          <EmptyState
+            icon={Stethoscope}
+            title="No diagnosis details available"
+            description="This report was generated without detailed disease cards. Try running a fresh diagnosis if you need a newer assessment."
+            actionLabel="Start diagnosis"
+            actionTo="/diagnose"
+          />
+        ) : (
+          <div className="space-y-6" data-testid="diseases-list">
+            {diseases.map((disease, index) => (
+              <article
+                key={`${disease.name}-${index}`}
+                data-testid={`disease-card-${index}`}
+                className="rounded-xl border border-border bg-card p-6 shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-2xl">
+                    <div className="overline text-muted-foreground">Possibility #{index + 1}</div>
+                    <h2 className="font-serif text-3xl text-primary" data-testid={`disease-name-${index}`}>
+                      {disease.name}
+                    </h2>
+                    <p className="mt-2 text-sm text-muted-foreground">{disease.description}</p>
+                  </div>
+                  <div className="min-w-[210px] space-y-3">
+                    <ConfidenceBar value={disease.confidence} />
+                    <ReportSeverityBadge confidence={disease.confidence} compact align="right" />
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Section icon={ListChecks} title="Possible causes" items={disease.possible_causes} />
+                  <Section icon={Pill} title="Recommended medicines" items={disease.recommended_medicines} />
+                  <Section icon={HomeIcon} title="Home remedies" items={disease.home_remedies} />
+                  <Section icon={Apple} title="Diet" items={disease.diet} />
+                  <Section icon={ShieldAlert} title="Precautions" items={disease.precautions} />
+                  <Section icon={Stethoscope} title="When to see a doctor" items={disease.when_to_see_doctor} />
+                </div>
+              </article>
+            ))}
           </div>
         )}
-
-        <div className="space-y-6" data-testid="diseases-list">
-          {diseases.map((d, idx) => (
-            <article
-              key={idx}
-              data-testid={`disease-card-${idx}`}
-              className="bg-card border border-border rounded-xl p-6 animate-fade-up"
-              style={{ animationDelay: `${idx * 80}ms` }}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="overline text-muted-foreground">Possibility #{idx + 1}</div>
-                  <h2 className="font-serif text-3xl text-primary" data-testid={`disease-name-${idx}`}>
-                    {d.name}
-                  </h2>
-                  <p className="mt-2 text-sm text-muted-foreground max-w-2xl">{d.description}</p>
-                </div>
-                <div className="min-w-[180px]">
-                  <ConfidenceBar value={d.confidence} />
-                </div>
-              </div>
-
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Section icon={ListChecks} title="Possible causes" items={d.possible_causes} />
-                <Section icon={Pill} title="OTC medicines" items={d.recommended_medicines} />
-                <Section icon={HomeIcon} title="Home remedies" items={d.home_remedies} />
-                <Section icon={Apple} title="Diet" items={d.diet} />
-                <Section icon={ShieldAlert} title="Precautions" items={d.precautions} />
-                <Section icon={Stethoscope} title="When to see a doctor" items={d.when_to_see_doctor} />
-              </div>
-            </article>
-          ))}
-        </div>
 
         <Disclaimer />
       </main>

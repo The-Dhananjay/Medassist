@@ -14,6 +14,13 @@ import NewDiagnosis from "@/pages/NewDiagnosis";
 import Reports from "@/pages/Reports";
 import ReportDetail from "@/pages/ReportDetail";
 import Sessions from "@/pages/Sessions";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
+import About from "@/pages/About";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsAndConditions from "@/pages/TermsAndConditions";
+import Contact from "@/pages/Contact";
+import FAQ from "@/pages/FAQ";
 
 function App() {
   return (
@@ -27,9 +34,22 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
             <Route
               path="/dashboard"
               element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+            />
+            <Route
+              path="/profile"
+              element={<ProtectedRoute><Profile /></ProtectedRoute>}
+            />
+            <Route
+              path="/settings"
+              element={<ProtectedRoute><Settings /></ProtectedRoute>}
             />
             <Route
               path="/sessions"

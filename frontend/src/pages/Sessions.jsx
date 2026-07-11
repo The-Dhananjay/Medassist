@@ -3,6 +3,7 @@ import { Clock3, Laptop2, LogOut, ShieldCheck, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import AppShell from "@/components/AppShell";
+import EmptyState from "@/components/EmptyState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -145,12 +146,17 @@ export default function Sessions() {
               </div>
             ))
           ) : sessions.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
-              No active sessions found.
-            </div>
+            <EmptyState
+              icon={ShieldCheck}
+              title="No active sessions found"
+              description="Once your account is used on other browsers or devices, session details will appear here for review."
+            />
           ) : (
             sessions.map((session) => (
-              <article key={session.id} className="rounded-xl border border-border bg-card p-5">
+              <article
+                key={session.id}
+                className="rounded-xl border border-border bg-card p-5 transition-transform duration-200 hover:-translate-y-0.5"
+              >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-3">

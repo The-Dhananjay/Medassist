@@ -40,11 +40,14 @@ const navItems = [
   },
   {
     label: "Profile",
-    to: "/dashboard#profile-security",
+    to: "/profile",
     icon: UserRound,
     testId: "nav-profile",
     isActive: ({ pathname, hash }) =>
-      pathname === "/sessions" || (pathname === "/dashboard" && hash === "#profile-security"),
+      pathname === "/profile" ||
+      pathname === "/settings" ||
+      pathname === "/sessions" ||
+      (pathname === "/dashboard" && hash === "#profile-security"),
   },
   {
     label: "Change Password",
@@ -82,7 +85,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const showAppNavigation =
     !!user &&
-    ["/dashboard", "/diagnose", "/reports", "/sessions"].some(
+    ["/dashboard", "/diagnose", "/reports", "/sessions", "/profile", "/settings"].some(
       (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
     );
 
