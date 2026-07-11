@@ -109,17 +109,17 @@ export default function Reports() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="overline text-muted-foreground">Report history</span>
-            <h1 className="mt-2 font-serif text-4xl text-primary" data-testid="reports-title">Your reports</h1>
+            <h1 className="mt-2 font-serif text-3xl text-primary sm:text-4xl" data-testid="reports-title">Your reports</h1>
             <p className="mt-2 text-muted-foreground">
               Search by disease or symptoms, refine with filters, and export a polished PDF anytime.
             </p>
           </div>
-          <Link to="/diagnose" data-testid="reports-new-button">
-            <Button className="rounded-full px-5">
+          <Link to="/diagnose" data-testid="reports-new-button" className="block w-full sm:w-auto">
+            <Button className="min-h-[44px] w-full rounded-full px-5 sm:w-auto">
               <Plus className="mr-1 h-4 w-4" /> New diagnosis
             </Button>
           </Link>
@@ -234,10 +234,10 @@ export default function Reports() {
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <Link to={`/reports/${report.id}`} className="block" data-testid={`report-row-${report.id}`}>
-                        <div className="font-serif text-2xl text-primary transition-colors duration-150 hover:text-primary/80">
+                        <div className="break-words font-serif text-2xl text-primary transition-colors duration-150 hover:text-primary/80">
                           {report.top_disease}
                         </div>
-                        <div className="mt-2 text-sm text-muted-foreground">
+                        <div className="mt-2 break-words text-sm text-muted-foreground">
                           {(report.symptoms || []).slice(0, 6).join(", ")}
                         </div>
                       </Link>
@@ -247,10 +247,10 @@ export default function Reports() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-start gap-4 lg:items-end">
+                    <div className="flex w-full flex-row flex-wrap items-center justify-between gap-4 lg:w-auto lg:flex-col lg:items-end">
                       <ReportSeverityBadge confidence={report.confidence} align="right" />
                       <div className="text-sm text-muted-foreground">{formatReportDate(report.created_at)}</div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex w-full items-center justify-between gap-3 lg:w-auto lg:justify-start">
                         <Link to={`/reports/${report.id}`} className="text-primary" data-testid={`report-open-${report.id}`}>
                           <ArrowRight className="h-4 w-4" />
                         </Link>

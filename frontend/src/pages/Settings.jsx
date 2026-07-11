@@ -55,17 +55,17 @@ export default function Settings() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+      <main className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="overline text-muted-foreground">Account settings</span>
-            <h1 className="mt-2 font-serif text-4xl text-primary">Preferences and security</h1>
+            <h1 className="mt-2 font-serif text-3xl text-primary sm:text-4xl">Preferences and security</h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
               Personalize the MedAssist experience, choose a theme, and manage your account security.
             </p>
           </div>
-          <Link to="/profile">
-            <Button variant="outline" className="rounded-full">Back to profile</Button>
+          <Link to="/profile" className="block w-full sm:w-auto">
+            <Button variant="outline" className="min-h-[44px] w-full rounded-full sm:w-auto">Back to profile</Button>
           </Link>
         </div>
 
@@ -80,7 +80,7 @@ export default function Settings() {
               Keep MedAssist aligned with your device or switch between light and dark mode manually.
             </p>
 
-            <div className="mt-5 flex items-center gap-3">
+            <div className="mt-5 flex items-start gap-3 sm:items-center">
               <div className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-primary">
                 <ThemeIcon className="h-4 w-4" />
               </div>
@@ -133,7 +133,7 @@ export default function Settings() {
             </div>
             <h2 className="mt-3 font-serif text-2xl text-primary">Stay informed</h2>
             <div className="mt-5 space-y-4">
-              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4">
+              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="font-medium text-primary">Product notifications</div>
                   <div className="text-sm text-muted-foreground">
@@ -145,7 +145,7 @@ export default function Settings() {
                   onCheckedChange={(value) => setPreference("notifications", value)}
                 />
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4">
+              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="font-medium text-primary">Email report updates</div>
                   <div className="text-sm text-muted-foreground">
@@ -157,7 +157,7 @@ export default function Settings() {
                   onCheckedChange={(value) => setPreference("emailReports", value)}
                 />
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4">
+              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="font-medium text-primary">Security emails</div>
                   <div className="text-sm text-muted-foreground">
@@ -184,8 +184,8 @@ export default function Settings() {
                 <div className="mt-1 text-sm text-muted-foreground">
                   Use the existing recovery flow to rotate your password safely.
                 </div>
-                <Link to="/forgot-password" className="mt-4 inline-block">
-                  <Button variant="outline" className="rounded-full">Open password recovery</Button>
+                <Link to="/forgot-password" className="mt-4 inline-block w-full sm:w-auto">
+                  <Button variant="outline" className="min-h-[44px] w-full rounded-full sm:w-auto">Open password recovery</Button>
                 </Link>
               </div>
 
@@ -195,7 +195,7 @@ export default function Settings() {
                   Sign out every active browser and session tied to this account.
                 </div>
                 <Button
-                  className="mt-4 rounded-full"
+                  className="mt-4 min-h-[44px] w-full rounded-full sm:w-auto"
                   onClick={logoutEverywhere}
                   disabled={busy === "logout-all"}
                 >
@@ -215,7 +215,7 @@ export default function Settings() {
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="mt-4 rounded-full">
+                    <Button variant="destructive" className="mt-4 min-h-[44px] w-full rounded-full sm:w-auto">
                       <Trash2 className="mr-2 h-4 w-4" />
                       Review delete account
                     </Button>

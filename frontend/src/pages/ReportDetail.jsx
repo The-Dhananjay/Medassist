@@ -76,7 +76,7 @@ export default function ReportDetail() {
   if (loading) {
     return (
       <AppShell>
-        <main className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+        <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
           <Skeleton className="h-6 w-28" />
           <Skeleton className="h-14 w-2/3" />
           <Skeleton className="h-28 w-full" />
@@ -89,7 +89,7 @@ export default function ReportDetail() {
   if (!report) {
     return (
       <AppShell>
-        <main className="mx-auto max-w-4xl px-6 py-10">
+        <main className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
           <EmptyState
             icon={AlertTriangle}
             title="Report not found"
@@ -109,7 +109,7 @@ export default function ReportDetail() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+      <main className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Link
             to="/reports"
@@ -123,7 +123,7 @@ export default function ReportDetail() {
             size="sm"
             onClick={del}
             data-testid="delete-report-button"
-            className="text-destructive hover:text-destructive"
+            className="min-h-[44px] w-full text-destructive hover:text-destructive sm:w-auto"
           >
             <Trash2 className="mr-1 h-4 w-4" /> Delete
           </Button>
@@ -135,16 +135,16 @@ export default function ReportDetail() {
               <span className="overline text-muted-foreground">
                 Report · {formatReportDateTime(report.created_at)}
               </span>
-              <h1 className="mt-2 font-serif text-4xl text-primary sm:text-5xl" data-testid="report-title">
+              <h1 className="mt-2 break-words font-serif text-3xl text-primary sm:text-5xl" data-testid="report-title">
                 {report.top_disease}
               </h1>
-              <div className="mt-3 text-sm text-muted-foreground">
+              <div className="mt-3 break-words text-sm text-muted-foreground">
                 <span className="overline mr-2">Symptoms</span>
                 {(report.symptoms || []).join(", ")}
               </div>
             </div>
 
-            <div className="space-y-4 lg:min-w-[230px]">
+            <div className="w-full space-y-4 lg:min-w-[230px] lg:max-w-[280px]">
               <ReportSeverityBadge confidence={report.confidence} align="right" />
               <ReportActionBar report={report} user={user} />
             </div>
@@ -201,14 +201,14 @@ export default function ReportDetail() {
                 className="rounded-xl border border-border bg-card p-6 shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="max-w-2xl">
+                  <div className="min-w-0 max-w-2xl">
                     <div className="overline text-muted-foreground">Possibility #{index + 1}</div>
-                    <h2 className="font-serif text-3xl text-primary" data-testid={`disease-name-${index}`}>
+                    <h2 className="break-words font-serif text-3xl text-primary" data-testid={`disease-name-${index}`}>
                       {disease.name}
                     </h2>
-                    <p className="mt-2 text-sm text-muted-foreground">{disease.description}</p>
+                    <p className="mt-2 break-words text-sm text-muted-foreground">{disease.description}</p>
                   </div>
-                  <div className="min-w-[210px] space-y-3">
+                  <div className="w-full space-y-3 sm:min-w-[210px] sm:max-w-[260px]">
                     <ConfidenceBar value={disease.confidence} />
                     <ReportSeverityBadge confidence={disease.confidence} compact align="right" />
                   </div>

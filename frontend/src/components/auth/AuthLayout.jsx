@@ -12,7 +12,7 @@ export default function AuthLayout({
   children,
 }) {
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+    <div className="grid min-h-screen grid-cols-1 overflow-x-hidden lg:grid-cols-2">
       <div className="hidden lg:block relative">
         <img src={SIDE_IMG} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-primary/40" />
@@ -30,10 +30,10 @@ export default function AuthLayout({
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-6 sm:p-10">
+      <div className="flex items-center justify-center p-4 sm:p-6 lg:p-10">
         <div className="w-full max-w-md">
           <span className="overline text-muted-foreground">{eyebrow}</span>
-          <h1 className="mt-2 font-serif text-4xl text-primary sm:text-5xl">{title}</h1>
+          <h1 className="mt-2 font-serif text-3xl text-primary sm:text-5xl">{title}</h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
             {description}
           </p>

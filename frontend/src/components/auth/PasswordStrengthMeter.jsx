@@ -9,7 +9,7 @@ export default function PasswordStrengthMeter({ password }) {
 
   return (
     <div className="rounded-xl border border-border bg-muted/40 p-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm font-medium text-primary">Password strength</div>
         <div className="text-xs text-muted-foreground">{strength.label}</div>
       </div>

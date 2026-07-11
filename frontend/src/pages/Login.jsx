@@ -67,7 +67,7 @@ export default function Login() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
             <Label htmlFor="password">Password</Label>
             <Link
               to="/forgot-password"

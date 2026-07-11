@@ -76,11 +76,16 @@ export default function ReportActionBar({ report, user, compact = false, classNa
   };
 
   return (
-    <div className={cn("flex flex-wrap gap-2", className)}>
+    <div
+      className={cn(
+        compact ? "flex flex-wrap gap-2" : "flex flex-col gap-2 sm:flex-row sm:flex-wrap",
+        className
+      )}
+    >
       <Button
         variant={compact ? "ghost" : "outline"}
         size={compact ? "sm" : "default"}
-        className={cn(!compact && "rounded-full")}
+        className={cn(!compact && "min-h-[44px] w-full rounded-full sm:w-auto")}
         onClick={handleDownload}
         disabled={busyAction !== ""}
       >
@@ -90,7 +95,7 @@ export default function ReportActionBar({ report, user, compact = false, classNa
       <Button
         variant="ghost"
         size={compact ? "sm" : "default"}
-        className={cn(!compact && "rounded-full")}
+        className={cn(!compact && "min-h-[44px] w-full rounded-full sm:w-auto")}
         onClick={() => withBusy("email", () => shareWithFallback("email"))}
         disabled={busyAction !== ""}
       >
@@ -100,7 +105,7 @@ export default function ReportActionBar({ report, user, compact = false, classNa
       <Button
         variant="ghost"
         size={compact ? "sm" : "default"}
-        className={cn(!compact && "rounded-full")}
+        className={cn(!compact && "min-h-[44px] w-full rounded-full sm:w-auto")}
         onClick={() => withBusy("whatsapp", () => shareWithFallback("whatsapp"))}
         disabled={busyAction !== ""}
       >
@@ -114,7 +119,7 @@ export default function ReportActionBar({ report, user, compact = false, classNa
       <Button
         variant="ghost"
         size={compact ? "sm" : "default"}
-        className={cn(!compact && "rounded-full")}
+        className={cn(!compact && "min-h-[44px] w-full rounded-full sm:w-auto")}
         onClick={handleCopy}
         disabled={busyAction !== ""}
       >

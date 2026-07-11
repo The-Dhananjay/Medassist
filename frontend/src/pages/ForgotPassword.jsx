@@ -163,7 +163,7 @@ export default function ForgotPassword() {
               variant="outline"
               disabled={cooldown > 0 || resending}
               onClick={resendCode}
-              className="rounded-full"
+              className="min-h-[44px] w-full rounded-full sm:w-auto"
             >
               {resending ? (
                 "Sending..."

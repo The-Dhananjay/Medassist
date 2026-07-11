@@ -95,27 +95,27 @@ export default function Sessions() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
+      <main className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="overline text-muted-foreground">Session management</span>
-            <h1 className="mt-2 font-serif text-4xl text-primary">Active devices</h1>
+            <h1 className="mt-2 font-serif text-3xl text-primary sm:text-4xl">Active devices</h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
               Review where your MedAssist account is signed in, then close sessions you no longer trust.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <Button
               variant="outline"
-              className="rounded-full"
+              className="min-h-[44px] w-full rounded-full sm:w-auto"
               disabled={busyKey === "current"}
               onClick={signOutCurrent}
             >
               {busyKey === "current" ? "Signing out..." : "Logout current"}
             </Button>
             <Button
-              className="rounded-full"
+              className="min-h-[44px] w-full rounded-full sm:w-auto"
               disabled={busyKey === "all"}
               onClick={signOutAll}
             >
@@ -173,7 +173,7 @@ export default function Sessions() {
 
                   <Button
                     variant={session.current ? "outline" : "ghost"}
-                    className="rounded-full"
+                    className="min-h-[44px] w-full rounded-full sm:w-auto"
                     disabled={busyKey === session.id}
                     onClick={() => signOutSession(session.id)}
                   >

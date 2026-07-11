@@ -86,10 +86,10 @@ export default function NewDiagnosis() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-6 py-10 space-y-8">
+      <main className="mx-auto max-w-5xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <div>
           <span className="overline text-muted-foreground">— New diagnosis</span>
-          <h1 className="mt-2 font-serif text-4xl text-primary" data-testid="diagnose-title">
+          <h1 className="mt-2 font-serif text-3xl text-primary sm:text-4xl" data-testid="diagnose-title">
             What are you feeling today?
           </h1>
           <p className="mt-2 text-muted-foreground max-w-xl">
@@ -152,7 +152,7 @@ export default function NewDiagnosis() {
 
             <div>
               <div className="overline text-muted-foreground mb-2">Add manually</div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={manual}
                   onChange={(e) => setManual(e.target.value)}
@@ -160,7 +160,13 @@ export default function NewDiagnosis() {
                   placeholder="Type and press Add"
                   data-testid="symptom-manual-input"
                 />
-                <Button type="button" variant="secondary" onClick={addManual} data-testid="symptom-manual-add">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addManual}
+                  data-testid="symptom-manual-add"
+                  className="min-h-[44px] w-full sm:w-auto"
+                >
                   <Plus className="w-4 h-4 mr-1" /> Add
                 </Button>
               </div>
@@ -238,12 +244,12 @@ export default function NewDiagnosis() {
           </div>
         </section>
 
-        <div className="sticky bottom-4 flex justify-end">
+        <div className="sticky bottom-4 flex justify-stretch sm:justify-end">
           <Button
             size="lg"
             onClick={submit}
             disabled={busy}
-            className="rounded-full px-8 shadow-lg"
+            className="min-h-[44px] w-full rounded-full px-8 shadow-lg sm:w-auto"
             data-testid="diagnose-submit-button"
           >
             <Sparkles className="w-4 h-4 mr-2" />

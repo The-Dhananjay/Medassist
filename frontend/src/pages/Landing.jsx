@@ -14,12 +14,12 @@ export default function Landing() {
       <Navbar />
 
       <section className="relative overflow-hidden">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-6 pb-24 pt-16 lg:grid-cols-12">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-4 pb-16 pt-12 sm:px-6 sm:pb-24 sm:pt-16 lg:grid-cols-12">
           <div className="relative lg:col-span-7">
             <span className="overline text-muted-foreground" data-testid="hero-eyebrow">
               Preliminary triage, in seconds
             </span>
-            <h1 className="mt-4 font-serif text-5xl leading-[1.02] tracking-tight text-primary sm:text-6xl lg:text-7xl">
+            <h1 className="mt-4 font-serif text-4xl leading-[1.02] tracking-tight text-primary sm:text-6xl lg:text-7xl">
               A calmer way <br />
               to understand <br />
               <em className="not-italic text-primary/80">your symptoms.</em>
@@ -42,7 +42,7 @@ export default function Landing() {
               </Link>
             </div>
 
-            <div className="mt-10 grid max-w-lg grid-cols-3 gap-4">
+            <div className="mt-10 grid max-w-lg grid-cols-1 gap-4 sm:grid-cols-3">
               {[
                 { k: "2-4", v: "Conditions per report" },
                 { k: "<10s", v: "Median response" },
@@ -61,7 +61,7 @@ export default function Landing() {
             <img
               src={HERO_IMG}
               alt="Modern clinic interior"
-              className="h-[520px] w-full rounded-2xl object-cover shadow-xl"
+              className="h-[360px] w-full rounded-2xl object-cover shadow-xl sm:h-[520px]"
               data-testid="hero-image"
             />
             <div className="absolute bottom-6 left-6 right-6 rounded-xl border border-border bg-background/95 p-4 shadow-md backdrop-blur">
@@ -82,7 +82,7 @@ export default function Landing() {
       </section>
 
       <section className="border-t border-border bg-muted/40">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-6 py-20 md:grid-cols-3">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-16 sm:px-6 sm:py-20 md:grid-cols-3">
           {[
             {
               icon: HeartPulse,

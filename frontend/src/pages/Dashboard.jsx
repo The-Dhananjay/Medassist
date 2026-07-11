@@ -35,13 +35,13 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-7xl space-y-8 px-6 py-10">
+      <main className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="overline text-muted-foreground" data-testid="dashboard-greeting-eyebrow">
               Your health journal
             </span>
-            <h1 className="mt-2 font-serif text-4xl text-primary sm:text-5xl" data-testid="dashboard-title">
+            <h1 className="mt-2 font-serif text-3xl text-primary sm:text-5xl" data-testid="dashboard-title">
               Hello, {user?.name?.split(" ")[0] || "there"}.
             </h1>
             <p className="mt-2 max-w-xl text-muted-foreground">
@@ -49,8 +49,8 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <Link to="/diagnose" data-testid="dashboard-start-cta">
-            <Button size="lg" className="rounded-full px-6">
+          <Link to="/diagnose" data-testid="dashboard-start-cta" className="block w-full sm:w-auto">
+            <Button size="lg" className="min-h-[44px] w-full rounded-full px-6 sm:w-auto">
               Start a new diagnosis <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
@@ -156,7 +156,7 @@ export default function Dashboard() {
         </section>
 
         <section className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-serif text-2xl text-primary">Recent reports</h2>
             <Link
               to="/reports"
@@ -170,12 +170,12 @@ export default function Dashboard() {
           {loading ? (
             <div className="mt-6 space-y-4">
               {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="flex items-center justify-between gap-4 py-3">
+                <div key={index} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1">
                     <Skeleton className="h-5 w-40" />
                     <Skeleton className="mt-2 h-4 w-52" />
                   </div>
-                  <div className="shrink-0">
+                  <div className="w-full shrink-0 sm:w-auto">
                     <Skeleton className="h-8 w-24" />
                   </div>
                 </div>
@@ -195,20 +195,20 @@ export default function Dashboard() {
           ) : (
             <ul className="mt-4 divide-y divide-border">
               {reports.slice(0, 5).map((report) => (
-                <li key={report.id} className="flex items-center justify-between gap-4 py-3">
+                <li key={report.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <Link
                       to={`/reports/${report.id}`}
-                      className="truncate font-medium text-primary hover:underline"
+                      className="break-words font-medium text-primary hover:underline sm:truncate"
                       data-testid={`dashboard-report-link-${report.id}`}
                     >
                       {report.top_disease}
                     </Link>
-                    <div className="truncate text-xs text-muted-foreground">
+                    <div className="break-words text-xs text-muted-foreground sm:truncate">
                       {(report.symptoms || []).slice(0, 4).join(", ")}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-left sm:text-right">
                     <ReportSeverityBadge confidence={report.confidence} compact align="right" />
                     <div className="text-xs text-muted-foreground">
                       {new Date(report.created_at).toLocaleDateString()}

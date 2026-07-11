@@ -103,17 +103,17 @@ export default function Profile() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="overline text-muted-foreground">Account overview</span>
-            <h1 className="mt-2 font-serif text-4xl text-primary">Your profile</h1>
+            <h1 className="mt-2 font-serif text-3xl text-primary sm:text-4xl">Your profile</h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
               Review your MedAssist identity, health context, and account activity in one place.
             </p>
           </div>
-          <Link to="/settings">
-            <Button variant="outline" className="rounded-full">
+          <Link to="/settings" className="block w-full sm:w-auto">
+            <Button variant="outline" className="min-h-[44px] w-full rounded-full sm:w-auto">
               <Settings2 className="mr-2 h-4 w-4" /> Open settings
             </Button>
           </Link>
@@ -135,7 +135,7 @@ export default function Profile() {
           <>
             <section className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
               <div className="overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm">
-                <div className="grid gap-6 p-6 sm:grid-cols-[auto,1fr] sm:p-8">
+                <div className="grid justify-items-center gap-6 p-6 text-center sm:grid-cols-[auto,1fr] sm:justify-items-stretch sm:p-8 sm:text-left">
                   <Avatar className="h-24 w-24 border border-white/20">
                     <AvatarFallback className="bg-white/15 text-2xl font-semibold text-white">
                       {getInitials(user?.name)}
@@ -143,7 +143,7 @@ export default function Profile() {
                   </Avatar>
 
                   <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
                       <h2 className="font-serif text-3xl">{user?.name || "MedAssist user"}</h2>
                       <Badge variant="secondary" className="bg-white/15 text-white hover:bg-white/15">
                         {user?.email_verified ? "Verified" : "Pending verification"}
@@ -189,7 +189,7 @@ export default function Profile() {
                       <div className="overline">Latest diagnosis</div>
                     </div>
                     <div className="mt-3 font-serif text-2xl text-primary">{latestReport.top_disease}</div>
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+                    <div className="mt-3 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <ReportSeverityBadge confidence={latestReport.confidence} compact />
                       <div className="text-sm text-muted-foreground">
                         {formatReportDateTime(latestReport.created_at)}
@@ -295,7 +295,7 @@ export default function Profile() {
                 </div>
 
                 <div className="mt-6">
-                  <Button className="rounded-full px-6" onClick={saveProfile} disabled={saving}>
+                  <Button className="min-h-[44px] w-full rounded-full px-6 sm:w-auto" onClick={saveProfile} disabled={saving}>
                     {saving ? "Saving profile..." : "Save profile"}
                   </Button>
                 </div>
@@ -319,14 +319,14 @@ export default function Profile() {
                 ) : (
                   <ul className="mt-5 divide-y divide-border">
                     {reports.slice(0, 4).map((report) => (
-                      <li key={report.id} className="flex items-center justify-between gap-4 py-4">
+                      <li key={report.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
-                          <div className="truncate font-medium text-primary">{report.top_disease}</div>
-                          <div className="truncate text-xs text-muted-foreground">
+                          <div className="break-words font-medium text-primary sm:truncate">{report.top_disease}</div>
+                          <div className="break-words text-xs text-muted-foreground sm:truncate">
                             {(report.symptoms || []).slice(0, 4).join(", ")}
                           </div>
                         </div>
-                        <div className="shrink-0 text-right">
+                        <div className="shrink-0 text-left sm:text-right">
                           <div className="font-serif text-lg text-primary">
                             {getDisplayConfidence(report.confidence)}%
                           </div>
