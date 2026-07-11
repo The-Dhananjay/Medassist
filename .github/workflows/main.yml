@@ -1,8 +1,9 @@
-name: Build Android APK
+name: Build MedAssist Android APK
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -14,36 +15,46 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - run: npm ci
+      - name: Install Dependencies
+        run: npm install
 
-      - run: npm run build
+      - name: Build React App
+        run: npm run build
 
-      - uses: actions/setup-java@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Accept Android licenses
+      - name: Accept Android SDK Licenses
         run: yes | sdkmanager --licenses
 
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build APK
-        working-directory: frontend/android
-        run: ./gradlew assembleDebug
+      - name: Grant Gradle Permission
+        run: chmod +x android/gradlew
 
-      - uses: actions/upload-artifact@v4
+      - name: Build Debug APK
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: MedAssist-APK
+          name: MedAssist-Debug-APK
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
