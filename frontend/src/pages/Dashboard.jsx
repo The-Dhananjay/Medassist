@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, ArrowRight, Clock, FileText, MailCheck, ShieldCheck } from "lucide-react";
 
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,7 @@ export default function Dashboard() {
   }).length;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppShell>
       <main className="mx-auto max-w-7xl space-y-8 px-6 py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -78,7 +77,7 @@ export default function Dashboard() {
           ))}
         </section>
 
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <section id="profile-security" className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-6 lg:col-span-2">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -199,6 +198,6 @@ export default function Dashboard() {
           )}
         </section>
       </main>
-    </div>
+    </AppShell>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,8 +85,7 @@ export default function NewDiagnosis() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppShell>
       <main className="mx-auto max-w-5xl px-6 py-10 space-y-8">
         <div>
           <span className="overline text-muted-foreground">— New diagnosis</span>
@@ -252,6 +251,6 @@ export default function NewDiagnosis() {
           </Button>
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }

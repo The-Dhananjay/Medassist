@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api, { formatApiError } from "@/lib/api";
@@ -42,8 +42,7 @@ export default function Reports() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppShell>
       <main className="mx-auto max-w-5xl px-6 py-10 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
@@ -111,6 +110,6 @@ export default function Reports() {
           )}
         </section>
       </main>
-    </div>
+    </AppShell>
   );
 }

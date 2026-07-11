@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Clock3, Laptop2, LogOut, ShieldCheck, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,8 +93,7 @@ export default function Sessions() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppShell>
       <main className="mx-auto max-w-5xl space-y-8 px-6 py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -199,6 +198,6 @@ export default function Sessions() {
           )}
         </section>
       </main>
-    </div>
+    </AppShell>
   );
 }

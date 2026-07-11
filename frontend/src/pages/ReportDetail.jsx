@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
 import { Button } from "@/components/ui/button";
 import api, { formatApiError } from "@/lib/api";
@@ -70,20 +70,18 @@ export default function ReportDetail() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="mx-auto max-w-4xl px-6 py-10 text-muted-foreground">Loading report…</div>
-    </div>
+    <AppShell>
+      <div className="mx-auto max-w-4xl px-6 py-10 text-muted-foreground">Loading report...</div>
+    </AppShell>
   );
 
   if (!report) return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppShell>
       <div className="mx-auto max-w-4xl px-6 py-10">
         <p className="text-muted-foreground">Report not found.</p>
         <Link to="/reports"><Button variant="link">Back to reports</Button></Link>
       </div>
-    </div>
+    </AppShell>
   );
 
   const pred = report.prediction || {};
@@ -91,8 +89,7 @@ export default function ReportDetail() {
   const emergency = pred.emergency_warning;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <AppShell>
       <main className="mx-auto max-w-4xl px-6 py-10 space-y-8">
         <div className="flex items-center justify-between gap-4">
           <Link to="/reports" className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1" data-testid="back-to-reports">
@@ -168,6 +165,6 @@ export default function ReportDetail() {
 
         <Disclaimer />
       </main>
-    </div>
+    </AppShell>
   );
 }
