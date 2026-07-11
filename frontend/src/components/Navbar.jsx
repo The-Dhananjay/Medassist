@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ import {
   Monitor,
   MoonStar,
   Plus,
+  Settings2,
   Stethoscope,
   SunMedium,
   UserRound,
@@ -70,6 +72,14 @@ const navItems = [
   },
 ];
 
+const settingsItem = {
+  label: "Settings",
+  to: "/settings",
+  icon: Settings2,
+  testId: "nav-settings",
+  isActive: ({ pathname }) => pathname === "/settings",
+};
+
 function Brand({ textVisibility = "always" }) {
   return (
     <Link to="/dashboard" className="flex items-center gap-3" data-testid="nav-logo">
@@ -88,6 +98,15 @@ function Brand({ textVisibility = "always" }) {
       ) : null}
     </Link>
   );
+}
+
+function getInitials(name) {
+  return (name || "")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
 }
 
 function ThemeControl({ compact = false, onThemeChange }) {
@@ -139,6 +158,25 @@ export default function Navbar() {
     ["/dashboard", "/diagnose", "/reports", "/sessions", "/profile", "/settings"].some(
       (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
     );
+  const profileSectionActive =
+    location.pathname === "/profile" ||
+    location.pathname === "/settings" ||
+    location.pathname === "/sessions" ||
+    (location.pathname === "/dashboard" && location.hash === "#profile-security");
+  const drawerItems = [
+    navItems[0],
+    navItems[1],
+    navItems[2],
+    {
+      ...navItems[3],
+      isActive: ({ pathname, hash }) =>
+        pathname === "/profile" ||
+        pathname === "/sessions" ||
+        (pathname === "/dashboard" && hash === "#profile-security"),
+    },
+    settingsItem,
+    navItems[4],
+  ];
 
   const itemClass = (active, compact = false) =>
     cn(
@@ -174,22 +212,39 @@ export default function Navbar() {
   if (showAppNavigation) {
     return (
       <>
-        <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden">
-          <div className="flex h-16 items-center justify-between px-4">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
+          <div className="flex h-16 items-center justify-between px-4 sm:px-5">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
+              data-testid="nav-menu-button"
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <Brand textVisibility="hidden" />
-            <div className="h-9 w-9" aria-hidden="true" />
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/profile")}
+              aria-label="Open profile"
+              data-testid="nav-profile-button"
+              className={cn(
+                "rounded-full",
+                profileSectionActive && "bg-secondary text-primary hover:bg-secondary hover:text-primary"
+              )}
+            >
+              <Avatar className="h-9 w-9 border border-border">
+                <AvatarFallback className="bg-muted text-xs font-medium text-primary">
+                  {getInitials(user?.name) || <UserRound className="h-4 w-4" />}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
           </div>
         </header>
 
-        <aside className="fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:flex md:w-20 md:flex-col lg:w-64">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:flex lg:w-64 lg:flex-col">
           <div className="flex h-16 items-center border-b border-border px-4 lg:px-6">
             <Brand textVisibility="desktop-expanded" />
           </div>
@@ -227,11 +282,10 @@ export default function Navbar() {
               </div>
 
               <nav className="flex-1 space-y-1 p-4">
-                {navItems.map((item) => renderNavItem(item))}
+                {drawerItems.map((item) => renderNavItem(item))}
               </nav>
 
-              <div className="space-y-1 border-t border-border p-4">
-                <ThemeControl onThemeChange={() => setMobileOpen(false)} />
+              <div className="border-t border-border p-4">
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
