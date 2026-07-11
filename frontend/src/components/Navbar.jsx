@@ -55,16 +55,20 @@ const navItems = [
   },
 ];
 
-function Brand({ compact = false }) {
+function Brand({ textVisibility = "always" }) {
   return (
     <Link to="/dashboard" className="flex items-center gap-3" data-testid="nav-logo">
       <div className="grid h-10 w-10 place-items-center rounded-md bg-primary text-primary-foreground">
         <Stethoscope className="h-5 w-5" />
       </div>
-      {!compact ? (
-        <div className="leading-tight">
-          <div className="font-serif text-lg tracking-tight">MedAssist</div>
-          <div className="overline text-[10px] text-muted-foreground">AI Diagnosis</div>
+      {textVisibility !== "hidden" ? (
+        <div
+          className={cn(
+            "leading-tight",
+            textVisibility === "desktop-expanded" ? "hidden lg:block" : "block"
+          )}
+        >
+          <div className="font-serif text-xl font-semibold tracking-tight">MedAssist</div>
         </div>
       ) : null}
     </Link>
@@ -126,14 +130,14 @@ export default function Navbar() {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <Brand />
+            <Brand textVisibility="hidden" />
             <div className="h-9 w-9" aria-hidden="true" />
           </div>
         </header>
 
         <aside className="fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:flex md:w-20 md:flex-col lg:w-64">
           <div className="flex h-16 items-center border-b border-border px-4 lg:px-6">
-            <Brand compact />
+            <Brand textVisibility="desktop-expanded" />
           </div>
 
           <div className="flex flex-1 flex-col justify-between p-3 lg:p-4">
