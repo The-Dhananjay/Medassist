@@ -475,12 +475,24 @@ def register_middleware(application: FastAPI) -> None:
 
     @application.middleware("http")
     async def security_middleware(request: Request, call_next):
+        if request.url.path == "/api/predict":
+            logger.info(f"ENTER security_middleware {request.method} {request.url.path}")
         if requires_csrf_check(request):
             csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME, "")
             csrf_header = request.headers.get("X-CSRF-Token", "")
             if not csrf_cookie or not csrf_header or not hmac.compare_digest(
                 csrf_cookie, csrf_header
             ):
+                logger.warning(
+                    "403 CSRF rejected for "
+                    f"{request.method} {request.url.path} | "
+                    f"origin={request.headers.get('origin', '')} | "
+                    f"has_access_cookie={bool(request.cookies.get(COOKIE_NAME))} | "
+                    f"has_refresh_cookie={bool(request.cookies.get(REFRESH_COOKIE_NAME))} | "
+                    f"has_csrf_cookie={bool(csrf_cookie)} | "
+                    f"has_csrf_header={bool(csrf_header)} | "
+                    f"has_bearer={has_bearer_authorization(request)}"
+                )
                 return make_error_response(
                     status.HTTP_403_FORBIDDEN,
                     "CSRF validation failed.",
@@ -496,12 +508,35 @@ def register_middleware(application: FastAPI) -> None:
         return response
 
 
+def has_bearer_authorization(request: Request) -> bool:
+    auth_header = request.headers.get("Authorization", "")
+    return auth_header.startswith("Bearer ") and bool(auth_header[7:].strip())
+
+
 def requires_csrf_check(request: Request) -> bool:
     if request.method.upper() in SAFE_HTTP_METHODS:
         return False
     if request.url.path in CSRF_EXEMPT_PATHS:
         return False
-    return bool(request.cookies.get(COOKIE_NAME) or request.cookies.get(REFRESH_COOKIE_NAME))
+
+    # Cross-site frontend apps cannot read backend-scoped cookies to mirror the CSRF token
+    # into a header. When a valid Bearer token is supplied, the request is no longer relying
+    # on ambient cookie credentials, so we can skip the cookie-based CSRF check safely.
+    if has_bearer_authorization(request):
+        if request.url.path == "/api/predict":
+            logger.info(
+                f"CSRF skipped for {request.method} {request.url.path} because Bearer auth is present"
+            )
+        return False
+
+    csrf_required = bool(
+        request.cookies.get(COOKIE_NAME) or request.cookies.get(REFRESH_COOKIE_NAME)
+    )
+    if csrf_required and request.url.path == "/api/predict":
+        logger.info(
+            f"CSRF required for {request.method} {request.url.path} because request is cookie-authenticated"
+        )
+    return csrf_required
 
 
 def build_security_headers() -> dict[str, str]:
@@ -1600,6 +1635,7 @@ def try_extract_token_payload(request: Request) -> dict[str, Any] | None:
 
 
 async def get_current_user(request: Request) -> dict[str, Any]:
+    logger.info(f"ENTER get_current_user {request.method} {request.url.path}")
     token = get_token_from_request(request, "access")
     if not token:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -1642,6 +1678,7 @@ def get_current_session_id(request: Request) -> str | None:
 def resolve_diagnosis_context(
     payload: PredictInput, user: dict[str, Any]
 ) -> dict[str, Any]:
+    logger.info("ENTER resolve_diagnosis_context")
     return {
         "symptoms": payload.symptoms,
         "duration": payload.duration,
@@ -2048,6 +2085,7 @@ def rule_based_fallback(
 
 
 async def run_ai_diagnosis(context: dict[str, Any]) -> dict[str, Any]:
+    logger.info("ENTER run_ai_diagnosis")
     prompt = build_diagnosis_prompt(context)
     try:
         response = await asyncio.wait_for(
@@ -2147,6 +2185,7 @@ async def login(
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if not user.get("email_verified", False):
+        logger.warning(f"403 login rejected because email is not verified for {email}")
         raise HTTPException(status_code=403, detail="Please verify your email.")
 
     await reset_login_failures(user["id"], request)
@@ -2563,6 +2602,7 @@ async def predict(
     payload: PredictInput,
     user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
+    logger.info(f"ENTER predict for user={user.get('id')}")
     context = resolve_diagnosis_context(payload, user)
     result = await run_ai_diagnosis(context)
     top_disease = result["possible_diseases"][0] if result.get("possible_diseases") else {}
