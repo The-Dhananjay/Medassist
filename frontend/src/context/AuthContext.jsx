@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import api from "@/lib/api";
 import { clearAuthToken, hydrateAuthToken, setAuthToken } from "@/lib/authStorage";
 
@@ -7,19 +7,27 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const refreshRequestRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const requestId = ++refreshRequestRef.current;
     await hydrateAuthToken();
 
     try {
       const { data } = await api.get("/auth/me");
-      setUser(data.user);
+      if (requestId === refreshRequestRef.current) {
+        setUser(data.user);
+      }
       return data.user;
     } catch {
-      setUser(null);
+      if (requestId === refreshRequestRef.current) {
+        setUser(null);
+      }
       return null;
     } finally {
-      setLoading(false);
+      if (requestId === refreshRequestRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -29,10 +37,12 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
+    refreshRequestRef.current += 1;
 
     await setAuthToken(data.token);
 
     setUser(data.user);
+    setLoading(false);
 
     return data;
   };
@@ -50,6 +60,7 @@ export function AuthProvider({ children }) {
     }
 
     await clearAuthToken();
+    refreshRequestRef.current += 1;
     setUser(null);
   };
 
