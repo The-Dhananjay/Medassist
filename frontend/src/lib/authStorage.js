@@ -3,8 +3,10 @@ import { Capacitor } from "@capacitor/core";
 
 const AUTH_TOKEN_KEY = "medassist.auth.token";
 
-let authTokenCache;
+let authTokenCache = null;
 let hydrated = false;
+let hydrationPromise = null;
+let authTokenVersion = 0;
 
 function hasWindow() {
   return typeof window !== "undefined";
@@ -39,15 +41,30 @@ async function readNativeToken() {
 export async function hydrateAuthToken() {
   if (hydrated) return authTokenCache ?? null;
 
-  hydrated = true;
+  if (!hydrationPromise) {
+    const versionAtStart = authTokenVersion;
 
-  try {
-    authTokenCache = isNativeApp() ? await readNativeToken() : readWebToken();
-  } catch {
-    authTokenCache = readWebToken();
+    hydrationPromise = (async () => {
+      let storedToken;
+      try {
+        storedToken = isNativeApp() ? await readNativeToken() : readWebToken();
+      } catch {
+        storedToken = readWebToken();
+      }
+
+      // A completed login wins over an older asynchronous storage read.
+      if (versionAtStart === authTokenVersion) {
+        authTokenCache = storedToken ?? null;
+        hydrated = true;
+      }
+
+      return authTokenCache ?? null;
+    })().finally(() => {
+      hydrationPromise = null;
+    });
   }
 
-  return authTokenCache ?? null;
+  return hydrationPromise;
 }
 
 export async function getAuthToken() {
@@ -55,6 +72,7 @@ export async function getAuthToken() {
 }
 
 export async function setAuthToken(token) {
+  authTokenVersion += 1;
   authTokenCache = token || null;
   hydrated = true;
 
@@ -82,4 +100,12 @@ export async function setAuthToken(token) {
 
 export async function clearAuthToken() {
   await setAuthToken(null);
+}
+
+export async function clearAuthTokenIfCurrent(expectedToken) {
+  const currentToken = await getAuthToken();
+  if (currentToken !== (expectedToken ?? null)) return false;
+
+  await clearAuthToken();
+  return true;
 }
