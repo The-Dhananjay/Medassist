@@ -7,16 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 
 const PENDING_EMAIL_KEY = "medassist:pending-email";
+const PENDING_PASSWORD_KEY = "medassist:pending-password";
 
 export default function VerifyEmail() {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const storedEmail =
     typeof window !== "undefined" ? window.sessionStorage.getItem(PENDING_EMAIL_KEY) || "" : "";
+  const storedPassword =
+    typeof window !== "undefined" ? window.sessionStorage.getItem(PENDING_PASSWORD_KEY) || "" : "";
   const initialEmail = useMemo(
     () => searchParams.get("email") || storedEmail,
     [searchParams, storedEmail]
@@ -58,8 +63,20 @@ export default function VerifyEmail() {
     setBusy(true);
     try {
       await api.post("/auth/verify-email", { email, otp });
+      if (storedPassword) {
+        await login(email, storedPassword);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(PENDING_EMAIL_KEY);
+          window.sessionStorage.removeItem(PENDING_PASSWORD_KEY);
+        }
+        toast.success("Welcome to MedAssist");
+        navigate("/dashboard");
+        return;
+      }
+
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem(PENDING_EMAIL_KEY);
+        window.sessionStorage.removeItem(PENDING_PASSWORD_KEY);
       }
       setVerified(true);
       toast.success("Email verified");

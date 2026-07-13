@@ -13,6 +13,7 @@ import { getPasswordPolicyError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
 
 const PENDING_EMAIL_KEY = "medassist:pending-email";
+const PENDING_PASSWORD_KEY = "medassist:pending-password";
 
 export default function Register() {
   const { register } = useAuth();
@@ -50,6 +51,7 @@ export default function Register() {
       });
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(PENDING_EMAIL_KEY, form.email);
+        window.sessionStorage.setItem(PENDING_PASSWORD_KEY, form.password);
       }
       toast.success("Verification code sent");
       navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
