@@ -28,7 +28,6 @@ async function migrateLegacyNativeToken() {
   if (!legacyToken) return null;
 
   await SecureStorage.setItem(AUTH_TOKEN_KEY, legacyToken);
-  window.localStorage.removeItem("token");
   return legacyToken;
 }
 
@@ -57,7 +56,6 @@ export async function hydrateAuthToken() {
         authTokenCache = storedToken ?? null;
         hydrated = true;
       }
-
       return authTokenCache ?? null;
     })().finally(() => {
       hydrationPromise = null;
@@ -84,7 +82,11 @@ export async function setAuthToken(token) {
     }
 
     if (hasWindow()) {
-      window.localStorage.removeItem("token");
+      if (token) {
+        window.localStorage.setItem("token", token);
+      } else {
+        window.localStorage.removeItem("token");
+      }
     }
     return;
   }
