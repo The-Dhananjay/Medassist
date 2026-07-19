@@ -14,6 +14,31 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
+
+const listVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    transition: { duration: 0.2, ease: "easeIn" },
+  },
+};
+
 import { formatReportDate, getSeverityMeta } from "@/lib/reportUtils";
 
 export default function Reports() {
@@ -226,55 +251,58 @@ export default function Reports() {
               />
             </div>
           ) : (
-            <ul className="divide-y divide-border" data-testid="reports-list">
-              <AnimatePresence initial={false}>
-              {filteredReports.map((report, index) => (
-                <motion.li
-                  key={report.id}
-                  className="p-5 transition-colors duration-150 hover:bg-muted/35"
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }}
-                  transition={{ duration: 0.28, delay: index * 0.025, ease: "easeOut" }}
-                  layout
-                >
-                  <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
-                      <Link to={`/reports/${report.id}`} className="block" data-testid={`report-row-${report.id}`}>
-                        <div className="break-words font-serif text-2xl text-primary transition-colors duration-150 hover:text-primary/80">
-                          {report.top_disease}
-                        </div>
-                        <div className="mt-2 break-words text-sm text-muted-foreground">
-                          {(report.symptoms || []).slice(0, 6).join(", ")}
-                        </div>
-                      </Link>
-
-                      <div className="mt-4">
-                        <ReportActionBar report={report} user={user} compact />
-                      </div>
-                    </div>
-
-                    <div className="flex w-full flex-row flex-wrap items-center justify-between gap-4 lg:w-auto lg:flex-col lg:items-end">
-                      <ReportSeverityBadge confidence={report.confidence} align="right" />
-                      <div className="text-sm text-muted-foreground">{formatReportDate(report.created_at)}</div>
-                      <div className="flex w-full items-center justify-between gap-3 lg:w-auto lg:justify-start">
-                        <Link to={`/reports/${report.id}`} className="text-primary" data-testid={`report-open-${report.id}`}>
-                          <ArrowRight className="h-4 w-4" />
+            <motion.ul
+              variants={listVariants}
+              initial="hidden"
+              animate="show"
+              className="divide-y divide-border"
+              data-testid="reports-list"
+            >
+              <AnimatePresence mode="popLayout">
+                {filteredReports.map((report) => (
+                  <motion.li
+                    key={report.id}
+                    variants={itemVariants}
+                    layout
+                    className="p-5 transition-colors duration-150 hover:bg-muted/35"
+                  >
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <Link to={`/reports/${report.id}`} className="block" data-testid={`report-row-${report.id}`}>
+                          <div className="break-words font-serif text-2xl text-primary transition-colors duration-150 hover:text-primary/80">
+                            {report.top_disease}
+                          </div>
+                          <div className="mt-2 break-words text-sm text-muted-foreground">
+                            {(report.symptoms || []).slice(0, 6).join(", ")}
+                          </div>
                         </Link>
-                        <button
-                          onClick={() => del(report.id)}
-                          className="text-destructive transition-opacity duration-150 hover:opacity-70"
-                          data-testid={`report-delete-${report.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+
+                        <div className="mt-4">
+                          <ReportActionBar report={report} user={user} compact />
+                        </div>
+                      </div>
+
+                      <div className="flex w-full flex-row flex-wrap items-center justify-between gap-4 lg:w-auto lg:flex-col lg:items-end">
+                        <ReportSeverityBadge confidence={report.confidence} align="right" />
+                        <div className="text-sm text-muted-foreground">{formatReportDate(report.created_at)}</div>
+                        <div className="flex w-full items-center justify-between gap-3 lg:w-auto lg:justify-start">
+                          <Link to={`/reports/${report.id}`} className="text-primary" data-testid={`report-open-${report.id}`}>
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                          <button
+                            onClick={() => del(report.id)}
+                            className="text-destructive transition-opacity duration-150 hover:opacity-70"
+                            data-testid={`report-delete-${report.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.li>
-              ))}
+                  </motion.li>
+                ))}
               </AnimatePresence>
-            </ul>
+            </motion.ul>
           )}
         </section>
       </main>

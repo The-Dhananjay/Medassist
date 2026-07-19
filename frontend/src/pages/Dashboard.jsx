@@ -12,6 +12,29 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.45,
+      ease: "easeOut",
+    },
+  },
+};
+
 import AnimatedNumber from "@/components/animations/AnimatedNumber";
 
 export default function Dashboard() {
@@ -37,8 +60,13 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <motion.main
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:py-10"
+      >
+        <motion.div variants={itemVariants} className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="overline text-muted-foreground" data-testid="dashboard-greeting-eyebrow">
               Your health journal
@@ -56,16 +84,13 @@ export default function Dashboard() {
               Start a new diagnosis <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
-        <Disclaimer />
+        <motion.div variants={itemVariants}>
+          <Disclaimer />
+        </motion.div>
 
-        <motion.section
-          className="grid grid-cols-1 gap-4 md:grid-cols-3"
-          initial="hidden"
-          animate="show"
-          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
-        >
+        <motion.section variants={itemVariants} className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {[
             { icon: FileText, label: "Total reports", value: total, id: "stat-total" },
             { icon: Clock, label: "Today", value: todayCount, id: "stat-today" },
@@ -74,10 +99,9 @@ export default function Dashboard() {
             <motion.div
               key={stat.id}
               data-testid={stat.id}
-              className="rounded-xl border border-border bg-card p-6 transition-transform duration-200 hover:-translate-y-0.5"
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-              transition={{ duration: 0.36, ease: "easeOut" }}
-              whileHover={{ y: -4 }}
+              whileHover={{ y: -3 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="rounded-xl border border-border bg-card p-6 cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <div className="grid h-9 w-9 place-items-center rounded-md bg-secondary">
@@ -94,7 +118,7 @@ export default function Dashboard() {
           ))}
         </motion.section>
 
-        <section id="profile-security" className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <motion.section variants={itemVariants} id="profile-security" className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-6 lg:col-span-2">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -167,9 +191,9 @@ export default function Dashboard() {
               </Button>
             </Link>
           </div>
-        </section>
+        </motion.section>
 
-        <section className="rounded-xl border border-border bg-card p-6">
+        <motion.section variants={itemVariants} className="rounded-xl border border-border bg-card p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-serif text-2xl text-primary">Recent reports</h2>
             <Link
@@ -238,8 +262,8 @@ export default function Dashboard() {
               ))}
             </ul>
           )}
-        </section>
-      </main>
+        </motion.section>
+      </motion.main>
     </AppShell>
   );
 }

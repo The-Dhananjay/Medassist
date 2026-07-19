@@ -63,6 +63,18 @@ export default function Landing() {
           </motion.div>
 
           <motion.div className="relative lg:col-span-5" initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.18, ease: "easeOut" }}>
+            <motion.div
+              className="absolute -inset-10 -z-20 rounded-full bg-secondary/40 blur-3xl pointer-events-none"
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.35, 0.65, 0.35],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
             <div className="absolute -inset-6 -z-10 rotate-1 rounded-3xl bg-secondary/50" />
             <Suspense fallback={<div className="h-[360px] w-full rounded-2xl bg-secondary/40 shadow-xl sm:h-[520px]" />}>
               <MedAssist3DScene />

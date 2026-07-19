@@ -187,26 +187,27 @@ export default function NewDiagnosis() {
           {selected.length > 0 && (
             <div className="mt-6">
               <div className="overline text-muted-foreground mb-2">Selected ({selected.length})</div>
-              <motion.div className="flex flex-wrap gap-2" data-testid="selected-symptoms-list" layout>
-                <AnimatePresence initial={false}>
-                {selected.map((s) => (
-                  <motion.span key={s}
-                    data-testid={`selected-symptom-${s.toLowerCase().replace(/\s+/g, "-")}`}
-                    className="inline-flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-3 py-1 text-sm"
-                    initial={{ opacity: 0, scale: 0.86, y: 8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.86, y: -6 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                    layout
-                  >
-                    {s}
-                    <button type="button" onClick={() => remove(s)} className="hover:opacity-70">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </motion.span>
-                ))}
+              <div className="flex flex-wrap gap-2" data-testid="selected-symptoms-list">
+                <AnimatePresence>
+                  {selected.map((s) => (
+                    <motion.span
+                      key={s}
+                      layout
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.18 }}
+                      data-testid={`selected-symptom-${s.toLowerCase().replace(/\s+/g, "-")}`}
+                      className="inline-flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-3 py-1 text-sm font-medium"
+                    >
+                      {s}
+                      <button type="button" onClick={() => remove(s)} className="hover:opacity-70">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </motion.span>
+                  ))}
                 </AnimatePresence>
-              </motion.div>
+              </div>
             </div>
           )}
         </section>

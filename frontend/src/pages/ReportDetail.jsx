@@ -16,6 +16,25 @@ import { formatReportDateTime, formatReportValue, getDisplayConfidence } from "@
 import { toast } from "sonner";
 import LoadingBoostAnimation from "@/components/animations/LoadingBoostAnimation";
 
+const detailsContainerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const detailsItemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
+
+
 function ConfidenceBar({ value }) {
   const pct = Math.max(0, Math.min(100, getDisplayConfidence(value)));
   return (
@@ -29,7 +48,7 @@ function ConfidenceBar({ value }) {
           className="h-full bg-primary"
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.72, ease: "easeOut" }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
         />
       </div>
     </div>
@@ -41,7 +60,10 @@ function Section({ icon: Icon, title, items }) {
   const list = Array.isArray(items) ? items : [items];
 
   return (
-    <div className="rounded-xl border border-border bg-muted/20 p-4">
+    <motion.div
+      variants={detailsItemVariants}
+      className="rounded-xl border border-border bg-muted/20 p-4 transition-transform duration-200 hover:-translate-y-0.5"
+    >
       <div className="flex items-center gap-2 text-primary">
         <Icon className="h-4 w-4" />
         <div className="overline">{title}</div>
@@ -51,7 +73,7 @@ function Section({ icon: Icon, title, items }) {
           <li key={`${title}-${index}`}>{item}</li>
         ))}
       </ul>
-    </div>
+    </motion.div>
   );
 }
 
@@ -242,14 +264,19 @@ export default function ReportDetail() {
                   </div>
                 </div>
 
-                <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <motion.div
+                  variants={detailsContainerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2"
+                >
                   <Section icon={ListChecks} title="Possible causes" items={disease.possible_causes} />
                   <Section icon={Pill} title="Recommended medicines" items={disease.recommended_medicines} />
                   <Section icon={HomeIcon} title="Home remedies" items={disease.home_remedies} />
                   <Section icon={Apple} title="Diet" items={disease.diet} />
                   <Section icon={ShieldAlert} title="Precautions" items={disease.precautions} />
                   <Section icon={Stethoscope} title="When to see a doctor" items={disease.when_to_see_doctor} />
-                </div>
+                </motion.div>
               </motion.article>
             ))}
           </div>
