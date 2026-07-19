@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, RefreshCw, ShieldCheck } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -10,6 +10,9 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
+import ECGLoader from "@/components/animations/ECGLoader";
+import SecurityShieldAnimation from "@/components/animations/SecurityShieldAnimation";
+import SuccessCheckAnimation from "@/components/animations/SuccessCheckAnimation";
 
 const PENDING_EMAIL_KEY = "medassist:pending-email";
 const PENDING_PASSWORD_KEY = "medassist:pending-password";
@@ -115,9 +118,7 @@ export default function VerifyEmail() {
     >
       {verified ? (
         <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-secondary text-primary animate-pulse">
-            <CheckCircle2 className="h-8 w-8" />
-          </div>
+          <SuccessCheckAnimation />
           <h2 className="mt-5 font-serif text-3xl text-primary">Email verified</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Your MedAssist account is now active. You can sign in and start using secure sessions.
@@ -143,7 +144,7 @@ export default function VerifyEmail() {
 
             <div className="rounded-xl border border-border bg-muted/40 p-4">
               <div className="flex items-center gap-2 text-primary">
-                <ShieldCheck className="h-4 w-4" />
+                <SecurityShieldAnimation className="h-7 w-7" />
                 <div className="overline">Verification code</div>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
@@ -163,6 +164,7 @@ export default function VerifyEmail() {
             <Button type="submit" disabled={busy} className="w-full rounded-full">
               {busy ? "Verifying..." : "Verify email"}
             </Button>
+            {busy ? <ECGLoader message="Verifying email..." /> : null}
           </form>
 
           <div className="mt-6 flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">

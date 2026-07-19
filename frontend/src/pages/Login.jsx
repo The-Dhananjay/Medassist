@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
+import SuccessCheckAnimation from "@/components/animations/SuccessCheckAnimation";
 
 const PENDING_EMAIL_KEY = "medassist:pending-email";
 
@@ -17,6 +18,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const submit = async (event) => {
     event.preventDefault();
@@ -26,8 +28,9 @@ export default function Login() {
       if (typeof window !== "undefined") {
         window.sessionStorage.removeItem(PENDING_EMAIL_KEY);
       }
+      setSuccess(true);
       toast.success("Welcome back");
-      navigate("/dashboard");
+      window.setTimeout(() => navigate("/dashboard"), 650);
     } catch (err) {
       const message = formatApiError(err);
       if (err?.response?.status === 403 && message.toLowerCase().includes("verify")) {
@@ -95,6 +98,7 @@ export default function Login() {
         >
           {busy ? "Signing in..." : "Sign in"}
         </Button>
+        {success ? <SuccessCheckAnimation /> : null}
       </form>
 
       <p className="mt-6 text-sm text-muted-foreground">

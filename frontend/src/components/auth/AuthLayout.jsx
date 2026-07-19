@@ -1,7 +1,9 @@
 import { Stethoscope } from "lucide-react";
+import { useState } from "react";
+import AuthImageMotion from "@/components/animations/AuthImageMotion";
 
 const SIDE_IMG =
-  "https://images.unsplash.com/photo-1597496610123-889e0aab4816?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2Mzl8MHwxfHNlYXJjaHwyfHxtZWRpY2FsJTIwdGVjaG5vbG9neSUyMGFic3RyYWN0JTIwYmx1ZSUyMHRvbmV8ZW58MHx8fHwxNzgzNTEyMDM3fDA&ixlib=rb-4.1.0&q=85";
+  "https://images.unsplash.com/photo-1576091160550-2173dba999ef?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85";
 
 export default function AuthLayout({
   eyebrow,
@@ -11,11 +13,37 @@ export default function AuthLayout({
   quoteSource,
   children,
 }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
-    <div className="grid min-h-screen grid-cols-1 overflow-x-hidden lg:grid-cols-2">
-      <div className="hidden lg:block relative">
-        <img src={SIDE_IMG} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-primary/40" />
+    <div className="grid min-h-screen grid-cols-1 overflow-x-hidden bg-background lg:grid-cols-[minmax(0,1.08fr)_minmax(430px,0.92fr)]">
+      <div className="relative hidden overflow-hidden lg:block">
+        <div
+          className={`absolute inset-0 bg-secondary transition-opacity duration-500 ${
+            imageLoaded ? "opacity-0" : "opacity-100"
+          }`}
+          aria-hidden="true"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_65%,hsl(var(--primary)/0.16),transparent_34%),linear-gradient(135deg,hsl(var(--secondary)),hsl(var(--background)))]" />
+          <div className="absolute bottom-0 left-0 h-1/2 w-full bg-gradient-to-t from-primary/15 to-transparent" />
+          <div className="absolute left-16 top-20 h-2 w-32 rounded-full bg-primary/10" />
+          <div className="absolute left-16 top-28 h-2 w-48 rounded-full bg-primary/10" />
+        </div>
+        <AuthImageMotion>
+          <img
+            src={SIDE_IMG}
+            alt=""
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            onLoad={() => setImageLoaded(true)}
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ${
+              imageLoaded ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        </AuthImageMotion>
+        <div className="absolute inset-0 bg-primary/24" />
+        <div className="absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-background/8 to-transparent" />
         <div className="relative z-10 flex h-full flex-col justify-between p-10 text-primary-foreground">
           <div className="flex items-center gap-2">
             <div className="grid h-8 w-8 place-items-center rounded-md bg-background/95 text-primary">
@@ -30,7 +58,7 @@ export default function AuthLayout({
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-4 sm:p-6 lg:p-10">
+      <div className="relative flex items-center justify-center bg-background p-4 sm:p-6 lg:p-10">
         <div className="w-full max-w-md">
           <span className="overline text-muted-foreground">{eyebrow}</span>
           <h1 className="mt-2 font-serif text-3xl text-primary sm:text-5xl">{title}</h1>

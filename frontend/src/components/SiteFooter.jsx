@@ -25,7 +25,15 @@ export default function SiteFooter() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>&copy; {new Date().getFullYear()} MedAssist. Preliminary AI triage.</div>
-          <div>Not medical advice. In emergencies call your local emergency number.</div>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <a
+              href="mailto:medassist.team.support@gmail.com"
+              className="transition-colors duration-150 hover:text-primary"
+            >
+              medassist.team.support@gmail.com
+            </a>
+            <div>Not medical advice. In emergencies call your local emergency number.</div>
+          </div>
         </div>
       </div>
     </footer>

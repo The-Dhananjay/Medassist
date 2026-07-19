@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { toast } from "sonner";
 import api, { formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Search, Plus, X, Sparkles } from "lucide-react";
+import AIThinkingAnimation from "@/components/animations/AIThinkingAnimation";
+import HealthPulseAnimation from "@/components/animations/HealthPulseAnimation";
 
 const CORE_SYMPTOMS = [
   "Fever", "Cough", "Headache", "Vomiting", "Chest Pain", "Fatigue",
@@ -132,10 +135,17 @@ export default function NewDiagnosis() {
                   data-testid="symptom-search-input"
                 />
               </div>
+              <AnimatePresence>
               {suggestions.length > 0 && (
-                <ul className="mt-2 border border-border rounded-md bg-popover shadow-sm divide-y divide-border">
+                <motion.ul
+                  className="mt-2 border border-border rounded-md bg-popover shadow-sm divide-y divide-border"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                >
                   {suggestions.map((s) => (
-                    <li key={s}>
+                    <motion.li key={s} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
                       <button
                         type="button"
                         onClick={() => addFromQuery(s)}
@@ -144,10 +154,11 @@ export default function NewDiagnosis() {
                       >
                         {s}
                       </button>
-                    </li>
+                    </motion.li>
                   ))}
-                </ul>
+                </motion.ul>
               )}
+              </AnimatePresence>
             </div>
 
             <div>
@@ -176,19 +187,26 @@ export default function NewDiagnosis() {
           {selected.length > 0 && (
             <div className="mt-6">
               <div className="overline text-muted-foreground mb-2">Selected ({selected.length})</div>
-              <div className="flex flex-wrap gap-2" data-testid="selected-symptoms-list">
+              <motion.div className="flex flex-wrap gap-2" data-testid="selected-symptoms-list" layout>
+                <AnimatePresence initial={false}>
                 {selected.map((s) => (
-                  <span key={s}
+                  <motion.span key={s}
                     data-testid={`selected-symptom-${s.toLowerCase().replace(/\s+/g, "-")}`}
                     className="inline-flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-3 py-1 text-sm"
+                    initial={{ opacity: 0, scale: 0.86, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.86, y: -6 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                    layout
                   >
                     {s}
                     <button type="button" onClick={() => remove(s)} className="hover:opacity-70">
                       <X className="w-3.5 h-3.5" />
                     </button>
-                  </span>
+                  </motion.span>
                 ))}
-              </div>
+                </AnimatePresence>
+              </motion.div>
             </div>
           )}
         </section>
@@ -245,6 +263,11 @@ export default function NewDiagnosis() {
         </section>
 
         <div className="sticky bottom-4 flex justify-stretch sm:justify-end">
+          {busy ? (
+            <div className="mr-0 hidden w-full max-w-sm sm:mr-4 sm:block">
+              <AIThinkingAnimation />
+            </div>
+          ) : null}
           <Button
             size="lg"
             onClick={submit}
@@ -256,6 +279,11 @@ export default function NewDiagnosis() {
             {busy ? "Analyzing symptoms…" : "Analyze with AI"}
           </Button>
         </div>
+        {busy ? (
+          <div className="sm:hidden">
+            <HealthPulseAnimation message="Analyzing your health..." />
+          </div>
+        ) : null}
       </main>
     </AppShell>
   );

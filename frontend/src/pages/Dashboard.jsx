@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, ArrowRight, Clock, FileText, MailCheck, ShieldCheck } from "lucide-react";
+import { motion } from "framer-motion";
 
 import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
+import AnimatedNumber from "@/components/animations/AnimatedNumber";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -58,16 +60,24 @@ export default function Dashboard() {
 
         <Disclaimer />
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <motion.section
+          className="grid grid-cols-1 gap-4 md:grid-cols-3"
+          initial="hidden"
+          animate="show"
+          variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}
+        >
           {[
             { icon: FileText, label: "Total reports", value: total, id: "stat-total" },
             { icon: Clock, label: "Today", value: todayCount, id: "stat-today" },
             { icon: Activity, label: "Latest condition", value: latest?.top_disease || "-", id: "stat-latest" },
           ].map((stat) => (
-            <div
+            <motion.div
               key={stat.id}
               data-testid={stat.id}
               className="rounded-xl border border-border bg-card p-6 transition-transform duration-200 hover:-translate-y-0.5"
+              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.36, ease: "easeOut" }}
+              whileHover={{ y: -4 }}
             >
               <div className="flex items-center gap-3">
                 <div className="grid h-9 w-9 place-items-center rounded-md bg-secondary">
@@ -75,10 +85,14 @@ export default function Dashboard() {
                 </div>
                 <div className="overline text-muted-foreground">{stat.label}</div>
               </div>
-              <div className="mt-4 truncate font-serif text-3xl text-primary">{stat.value}</div>
-            </div>
+              {typeof stat.value === "number" ? (
+                <AnimatedNumber value={stat.value} className="mt-4 truncate font-serif text-3xl text-primary" />
+              ) : (
+                <div className="mt-4 truncate font-serif text-3xl text-primary">{stat.value}</div>
+              )}
+            </motion.div>
           ))}
-        </section>
+        </motion.section>
 
         <section id="profile-security" className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-6 lg:col-span-2">
@@ -194,8 +208,14 @@ export default function Dashboard() {
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-border">
-              {reports.slice(0, 5).map((report) => (
-                <li key={report.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+              {reports.slice(0, 5).map((report, index) => (
+                <motion.li
+                  key={report.id}
+                  className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
+                >
                   <div className="min-w-0">
                     <Link
                       to={`/reports/${report.id}`}
@@ -214,7 +234,7 @@ export default function Dashboard() {
                       {new Date(report.created_at).toLocaleDateString()}
                     </div>
                   </div>
-                </li>
+                </motion.li>
               ))}
             </ul>
           )}

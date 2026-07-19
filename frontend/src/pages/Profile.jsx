@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, BadgeCheck, CalendarDays, FileText, Settings2, ShieldCheck, UserRound } from "lucide-react";
+import { motion } from "framer-motion";
 
 import AppShell from "@/components/AppShell";
 import EmptyState from "@/components/EmptyState";
@@ -16,6 +17,8 @@ import { toast } from "@/components/ui/sonner";
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
 import { formatReportDate, formatReportDateTime, getDisplayConfidence } from "@/lib/reportUtils";
+import ECGLoader from "@/components/animations/ECGLoader";
+import SuccessCheckAnimation from "@/components/animations/SuccessCheckAnimation";
 
 function getInitials(name) {
   return (name || "MedAssist")
@@ -30,6 +33,7 @@ export default function Profile() {
   const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [reports, setReports] = useState([]);
   const [form, setForm] = useState({
     name: "",
@@ -93,6 +97,8 @@ export default function Profile() {
 
       const { data } = await api.put("/profile", payload);
       setUser(data.user);
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 900);
       toast.success("Profile updated.");
     } catch (err) {
       toast.error(formatApiError(err));
@@ -134,7 +140,13 @@ export default function Profile() {
         ) : (
           <>
             <section className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr]">
-              <div className="overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm">
+              <motion.div
+                className="overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-sm"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.38, ease: "easeOut" }}
+                whileHover={{ y: -3 }}
+              >
                 <div className="grid justify-items-center gap-6 p-6 text-center sm:grid-cols-[auto,1fr] sm:justify-items-stretch sm:p-8 sm:text-left">
                   <Avatar className="h-24 w-24 border border-white/20">
                     <AvatarFallback className="bg-white/15 text-2xl font-semibold text-white">
@@ -162,7 +174,7 @@ export default function Profile() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               <div className="rounded-xl border border-border bg-card p-6">
                 <div className="flex items-center gap-2 text-primary">
@@ -298,6 +310,8 @@ export default function Profile() {
                   <Button className="min-h-[44px] w-full rounded-full px-6 sm:w-auto" onClick={saveProfile} disabled={saving}>
                     {saving ? "Saving profile..." : "Save profile"}
                   </Button>
+                  {saving ? <div className="mt-4"><ECGLoader message="Updating profile..." /></div> : null}
+                  {saved ? <div className="mt-4"><SuccessCheckAnimation /></div> : null}
                 </div>
               </div>
 
@@ -318,8 +332,15 @@ export default function Profile() {
                   />
                 ) : (
                   <ul className="mt-5 divide-y divide-border">
-                    {reports.slice(0, 4).map((report) => (
-                      <li key={report.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    {reports.slice(0, 4).map((report, index) => (
+                      <motion.li
+                        key={report.id}
+                        className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+                        initial={{ opacity: 0, x: -8 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.28, delay: index * 0.05 }}
+                      >
                         <div className="min-w-0">
                           <div className="break-words font-medium text-primary sm:truncate">{report.top_disease}</div>
                           <div className="break-words text-xs text-muted-foreground sm:truncate">
@@ -332,7 +353,7 @@ export default function Profile() {
                           </div>
                           <div className="text-xs text-muted-foreground">{formatReportDate(report.created_at)}</div>
                         </div>
-                      </li>
+                      </motion.li>
                     ))}
                   </ul>
                 )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, MailCheck, RefreshCw } from "lucide-react";
+import { ArrowRight, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import api, { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
+import ECGLoader from "@/components/animations/ECGLoader";
+import SecurityShieldAnimation from "@/components/animations/SecurityShieldAnimation";
 
 const RESET_EMAIL_KEY = "medassist:reset-email";
 const RESET_TOKEN_KEY = "medassist:reset-token";
@@ -117,6 +119,7 @@ export default function ForgotPassword() {
             <Button type="submit" disabled={sending} className="w-full rounded-full">
               {sending ? "Sending code..." : "Send reset code"}
             </Button>
+            {sending ? <ECGLoader message="Preparing secure reset..." /> : null}
           </form>
 
           <p className="mt-6 text-sm text-muted-foreground">
@@ -130,7 +133,7 @@ export default function ForgotPassword() {
         <>
           <div className="rounded-xl border border-border bg-muted/40 p-4">
             <div className="flex items-center gap-2 text-primary">
-              <MailCheck className="h-4 w-4" />
+              <SecurityShieldAnimation className="h-7 w-7" />
               <div className="overline">OTP sent</div>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -152,6 +155,7 @@ export default function ForgotPassword() {
             <Button type="submit" disabled={verifying} className="w-full rounded-full">
               {verifying ? "Checking code..." : "Verify code"}
             </Button>
+            {verifying ? <ECGLoader message="Checking code..." /> : null}
           </form>
 
           <div className="mt-6 flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">

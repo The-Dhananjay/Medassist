@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Bell, Globe2, LogOut, MailCheck, Monitor, MoonStar, ShieldAlert, SunMedium, Trash2 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
 
 import AppShell from "@/components/AppShell";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -70,8 +71,8 @@ export default function Settings() {
           </Link>
         </div>
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-6">
+        <motion.section className="grid gap-6 lg:grid-cols-2" initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}>
+          <motion.div className="rounded-xl border border-border bg-card p-6" variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.34, ease: "easeOut" }}>
             <div className="flex items-center gap-2 text-primary">
               <MoonStar className="h-4 w-4" />
               <div className="overline">Appearance</div>
@@ -96,9 +97,9 @@ export default function Settings() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-xl border border-border bg-card p-6">
+          <motion.div className="rounded-xl border border-border bg-card p-6" variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.34, ease: "easeOut" }}>
             <div className="flex items-center gap-2 text-primary">
               <Globe2 className="h-4 w-4" />
               <div className="overline">Language</div>
@@ -123,18 +124,18 @@ export default function Settings() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-6">
+        <motion.section className="grid gap-6 lg:grid-cols-2" initial="hidden" animate="show" variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.08 } } }}>
+          <motion.div className="rounded-xl border border-border bg-card p-6" variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.34, ease: "easeOut" }}>
             <div className="flex items-center gap-2 text-primary">
               <Bell className="h-4 w-4" />
               <div className="overline">Notifications</div>
             </div>
             <h2 className="mt-3 font-serif text-2xl text-primary">Stay informed</h2>
             <div className="mt-5 space-y-4">
-              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <motion.div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between" whileHover={{ x: 3 }}>
                 <div>
                   <div className="font-medium text-primary">Product notifications</div>
                   <div className="text-sm text-muted-foreground">
@@ -145,8 +146,8 @@ export default function Settings() {
                   checked={preferences.notifications}
                   onCheckedChange={(value) => setPreference("notifications", value)}
                 />
-              </div>
-              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+              </motion.div>
+              <motion.div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between" whileHover={{ x: 3 }}>
                 <div>
                   <div className="font-medium text-primary">Email report updates</div>
                   <div className="text-sm text-muted-foreground">
@@ -157,8 +158,8 @@ export default function Settings() {
                   checked={preferences.emailReports}
                   onCheckedChange={(value) => setPreference("emailReports", value)}
                 />
-              </div>
-              <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+              </motion.div>
+              <motion.div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between" whileHover={{ x: 3 }}>
                 <div>
                   <div className="font-medium text-primary">Security emails</div>
                   <div className="text-sm text-muted-foreground">
@@ -169,11 +170,11 @@ export default function Settings() {
                   checked={preferences.emailSecurity}
                   onCheckedChange={(value) => setPreference("emailSecurity", value)}
                 />
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className="rounded-xl border border-border bg-card p-6">
+          <motion.div className="rounded-xl border border-border bg-card p-6" variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.34, ease: "easeOut" }}>
             <div className="flex items-center gap-2 text-primary">
               <MailCheck className="h-4 w-4" />
               <div className="overline">Security</div>
@@ -237,8 +238,8 @@ export default function Settings() {
                 </AlertDialog>
               </div>
             </div>
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
       </main>
     </AppShell>
   );

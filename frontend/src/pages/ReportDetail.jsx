@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, Apple, ArrowLeft, Home as HomeIcon, ListChecks, Pill, ShieldAlert, Stethoscope, Trash2, UserRound } from "lucide-react";
+import { motion } from "framer-motion";
 
 import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
@@ -13,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
 import { formatReportDateTime, formatReportValue, getDisplayConfidence } from "@/lib/reportUtils";
 import { toast } from "sonner";
+import LoadingBoostAnimation from "@/components/animations/LoadingBoostAnimation";
 
 function ConfidenceBar({ value }) {
   const pct = Math.max(0, Math.min(100, getDisplayConfidence(value)));
@@ -23,7 +25,12 @@ function ConfidenceBar({ value }) {
         <span className="font-serif text-lg text-primary">{pct}%</span>
       </div>
       <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />
+        <motion.div
+          className="h-full bg-primary"
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.72, ease: "easeOut" }}
+        />
       </div>
     </div>
   );
@@ -56,10 +63,26 @@ export default function ReportDetail() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/reports/${id}`)
-      .then(({ data }) => setReport(data.report))
-      .catch((err) => toast.error(formatApiError(err)))
-      .finally(() => setLoading(false));
+    let active = true;
+    const minimumLoader = new Promise((resolve) => window.setTimeout(resolve, 1500));
+
+    Promise.all([
+      api.get(`/reports/${id}`),
+      minimumLoader,
+    ])
+      .then(([{ data }]) => {
+        if (active) setReport(data.report);
+      })
+      .catch((err) => {
+        if (active) toast.error(formatApiError(err));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const del = async () => {
@@ -77,6 +100,7 @@ export default function ReportDetail() {
     return (
       <AppShell>
         <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 lg:py-10">
+          <LoadingBoostAnimation message="Generating report..." />
           <Skeleton className="h-6 w-28" />
           <Skeleton className="h-14 w-2/3" />
           <Skeleton className="h-28 w-full" />
@@ -195,10 +219,14 @@ export default function ReportDetail() {
         ) : (
           <div className="space-y-6" data-testid="diseases-list">
             {diseases.map((disease, index) => (
-              <article
+              <motion.article
                 key={`${disease.name}-${index}`}
                 data-testid={`disease-card-${index}`}
                 className="rounded-xl border border-border bg-card p-6 shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.38, delay: index * 0.06, ease: "easeOut" }}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 max-w-2xl">
@@ -222,7 +250,7 @@ export default function ReportDetail() {
                   <Section icon={ShieldAlert} title="Precautions" items={disease.precautions} />
                   <Section icon={Stethoscope} title="When to see a doctor" items={disease.when_to_see_doctor} />
                 </div>
-              </article>
+              </motion.article>
             ))}
           </div>
         )}

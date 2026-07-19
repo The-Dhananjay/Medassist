@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -83,9 +84,14 @@ const settingsItem = {
 function Brand({ textVisibility = "always" }) {
   return (
     <Link to="/dashboard" className="flex items-center gap-3" data-testid="nav-logo">
-      <div className="grid h-10 w-10 place-items-center rounded-md bg-primary text-primary-foreground">
+      <motion.div
+        className="grid h-10 w-10 place-items-center rounded-md bg-primary text-primary-foreground"
+        whileHover={{ rotate: -6, scale: 1.04 }}
+        whileTap={{ scale: 0.96 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+      >
         <Stethoscope className="h-5 w-5" />
-      </div>
+      </motion.div>
       {textVisibility !== "hidden" ? (
         <div
           className={cn(
@@ -189,8 +195,13 @@ export default function Navbar() {
     const Icon = item.icon;
     const active = item.isActive(location);
     return (
-      <Link
+      <motion.div
         key={item.label}
+        whileHover={{ x: 3 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+      >
+      <Link
         to={item.to}
         className={itemClass(active, compact)}
         data-testid={item.testId}
@@ -200,6 +211,7 @@ export default function Navbar() {
         <Icon className="h-4 w-4 shrink-0" />
         <span className={compact ? "hidden lg:inline" : undefined}>{item.label}</span>
       </Link>
+      </motion.div>
     );
   };
 
@@ -213,7 +225,7 @@ export default function Navbar() {
     return (
       <>
         <header className="fixed inset-x-0 top-0 z-40 border-b border-border bg-background/95 pl-[var(--app-safe-left)] pr-[var(--app-safe-right)] pt-[var(--app-safe-top)] backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
-          <div className="flex h-16 items-center justify-between px-4 sm:px-5">
+          <motion.div className="flex h-16 items-center justify-between px-4 sm:px-5" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
             <Button
               variant="ghost"
               size="icon"
@@ -241,10 +253,10 @@ export default function Navbar() {
                 </AvatarFallback>
               </Avatar>
             </Button>
-          </div>
+          </motion.div>
         </header>
 
-        <aside className="fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:flex lg:w-64 lg:flex-col">
+        <motion.aside className="fixed inset-y-0 left-0 z-40 hidden border-r border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:flex lg:w-64 lg:flex-col" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.32, ease: "easeOut" }}>
           <div className="flex h-16 items-center border-b border-border px-4 lg:px-6">
             <Brand textVisibility="desktop-expanded" />
           </div>
@@ -267,7 +279,7 @@ export default function Navbar() {
               </Button>
             </div>
           </div>
-        </aside>
+        </motion.aside>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetContent side="left" className="w-[260px] border-r border-border bg-background p-0 pb-[var(--app-safe-bottom)] sm:max-w-[260px]">

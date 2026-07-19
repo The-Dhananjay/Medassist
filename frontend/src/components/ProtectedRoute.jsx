@@ -1,4 +1,5 @@
 import { Navigate } from "react-router-dom";
+import LoadingBoostAnimation from "@/components/animations/LoadingBoostAnimation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function ProtectedRoute({ children }) {
@@ -6,7 +7,9 @@ export default function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        <span className="overline" data-testid="auth-checking">Loading session…</span>
+        <div data-testid="auth-checking">
+          <LoadingBoostAnimation message="Loading session..." />
+        </div>
       </div>
     );
   }

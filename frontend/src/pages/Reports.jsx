@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CalendarDays, FileSearch, FilterX, Plus, Search, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import AppShell from "@/components/AppShell";
 import EmptyState from "@/components/EmptyState";
@@ -226,10 +227,16 @@ export default function Reports() {
             </div>
           ) : (
             <ul className="divide-y divide-border" data-testid="reports-list">
-              {filteredReports.map((report) => (
-                <li
+              <AnimatePresence initial={false}>
+              {filteredReports.map((report, index) => (
+                <motion.li
                   key={report.id}
                   className="p-5 transition-colors duration-150 hover:bg-muted/35"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }}
+                  transition={{ duration: 0.28, delay: index * 0.025, ease: "easeOut" }}
+                  layout
                 >
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
@@ -264,8 +271,9 @@ export default function Reports() {
                       </div>
                     </div>
                   </div>
-                </li>
+                </motion.li>
               ))}
+              </AnimatePresence>
             </ul>
           )}
         </section>

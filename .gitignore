@@ -4,6 +4,14 @@
 .idea/
 .vscode/
 
+# Recovery files
+RECOVERY_REPORT.md
+
+# Runtime folders
+backend/logs/
+backend/temp/
+backend/uploads/
+uploads/
 # Dependencies
 node_modules/
 /node_modules

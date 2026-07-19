@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatApiError } from "@/lib/api";
 import { getPasswordPolicyError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
+import SuccessCheckAnimation from "@/components/animations/SuccessCheckAnimation";
 
 const PENDING_EMAIL_KEY = "medassist:pending-email";
 const PENDING_PASSWORD_KEY = "medassist:pending-password";
@@ -26,6 +27,7 @@ export default function Register() {
     gender: "",
   });
   const [busy, setBusy] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const setField = (key, value) => {
@@ -53,8 +55,9 @@ export default function Register() {
         window.sessionStorage.setItem(PENDING_EMAIL_KEY, form.email);
         window.sessionStorage.setItem(PENDING_PASSWORD_KEY, form.password);
       }
+      setSuccess(true);
       toast.success("Verification code sent");
-      navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
+      window.setTimeout(() => navigate(`/verify-email?email=${encodeURIComponent(form.email)}`), 650);
     } catch (err) {
       toast.error(formatApiError(err));
     } finally {
@@ -160,6 +163,7 @@ export default function Register() {
         >
           {busy ? "Creating..." : "Create account"}
         </Button>
+        {success ? <SuccessCheckAnimation /> : null}
       </form>
 
       <p className="mt-6 text-sm text-muted-foreground">

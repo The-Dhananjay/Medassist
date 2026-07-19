@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import api, { formatApiError } from "@/lib/api";
 import { getPasswordPolicyError } from "@/lib/passwordPolicy";
 import { toast } from "sonner";
+import ECGLoader from "@/components/animations/ECGLoader";
+import SecurityShieldAnimation from "@/components/animations/SecurityShieldAnimation";
+import SuccessCheckAnimation from "@/components/animations/SuccessCheckAnimation";
 
 const RESET_EMAIL_KEY = "medassist:reset-email";
 const RESET_TOKEN_KEY = "medassist:reset-token";
@@ -86,9 +89,7 @@ export default function ResetPassword() {
         </div>
       ) : success ? (
         <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-secondary text-primary animate-pulse">
-            <CheckCircle2 className="h-8 w-8" />
-          </div>
+          <SuccessCheckAnimation />
           <h2 className="mt-5 font-serif text-3xl text-primary">Password changed</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
             Your password is updated and previous refresh sessions were invalidated. Sign in with the
@@ -101,7 +102,12 @@ export default function ResetPassword() {
       ) : (
         <>
           <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            Resetting password for <span className="font-medium text-primary">{email}</span>
+            <div className="flex items-center gap-3">
+              <SecurityShieldAnimation />
+              <div>
+                Resetting password for <span className="font-medium text-primary">{email}</span>
+              </div>
+            </div>
           </div>
 
           <form onSubmit={submit} className="mt-5 space-y-4">
@@ -157,6 +163,7 @@ export default function ResetPassword() {
             <Button type="submit" disabled={busy} className="w-full rounded-full">
               {busy ? "Updating password..." : "Update password"}
             </Button>
+            {busy ? <ECGLoader message="Updating password..." /> : null}
           </form>
 
           <p className="mt-6 text-sm text-muted-foreground">
