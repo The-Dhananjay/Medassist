@@ -1,0 +1,23 @@
+{
+  "name": "MedAssist",
+  "short_name": "MedAssist",
+  "description": "AI Powered Healthcare Assistant",
+  "start_url": ".",
+  "theme_color": "#0B1120",
+  "background_color": "#0B1120",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "icons/icon-192.webp",
+      "type": "image/webp",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.webp",
+      "type": "image/webp",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}
