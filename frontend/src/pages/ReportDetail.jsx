@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import api, { formatApiError } from "@/lib/api";
-import { formatReportDateTime, formatReportValue, getDisplayConfidence } from "@/lib/reportUtils";
+import { formatReportDateTime, formatReportValue } from "@/lib/reportUtils";
 import { toast } from "sonner";
 import LoadingBoostAnimation from "@/components/animations/LoadingBoostAnimation";
 
@@ -34,27 +34,6 @@ const detailsItemVariants = {
   },
 };
 
-
-function ConfidenceBar({ value }) {
-  const pct = Math.max(0, Math.min(100, getDisplayConfidence(value)));
-  return (
-    <div className="w-full">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span className="overline">Confidence</span>
-        <span className="font-serif text-lg text-primary">{pct}%</span>
-      </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-        <motion.div
-          className="h-full bg-primary"
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
-        />
-      </div>
-    </div>
-  );
-}
-
 function Section({ icon: Icon, title, items }) {
   if (!items || (Array.isArray(items) && items.length === 0)) return null;
   const list = Array.isArray(items) ? items : [items];
@@ -74,6 +53,102 @@ function Section({ icon: Icon, title, items }) {
         ))}
       </ul>
     </motion.div>
+  );
+}
+
+function MedicationOptionsSection({ medicationGuidance, emergency }) {
+  const isUrgent = !!emergency || medicationGuidance?.status === "urgent_red_flag";
+  const isInsufficient = !isUrgent && medicationGuidance?.status === "insufficient_info";
+  const options = medicationGuidance?.options || [];
+  const missingFields = medicationGuidance?.missing_fields || [];
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4" data-testid="medication-options-section">
+      <div className="flex items-center gap-2 text-primary">
+        <Pill className="h-5 w-5" />
+        <h2 className="font-serif text-2xl text-primary">Medication Options</h2>
+      </div>
+
+      {isUrgent ? (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-5 space-y-2" data-testid="medication-state-urgent">
+          <div className="font-semibold text-red-700 dark:text-red-400 text-base">
+            No specific self-treatment medication is recommended at this time.
+          </div>
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            The reported symptoms require urgent medical evaluation. Self-treatment medication should not be used as a substitute or to delay professional emergency assessment.
+          </p>
+        </div>
+      ) : isInsufficient ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-5 space-y-2" data-testid="medication-state-insufficient">
+          <div className="font-semibold text-amber-700 dark:text-amber-300 text-base">
+            More information is needed before recommending a medication.
+          </div>
+          <p className="text-sm text-foreground/90">
+            {medicationGuidance?.summary || "Please provide relevant details such as age, weight, allergies, current medications, existing conditions, or pregnancy status."}
+          </p>
+          {missingFields.length > 0 && (
+            <div className="pt-2">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Relevant missing details:</span>
+              <ul className="mt-1 list-disc pl-5 text-xs text-foreground/90 space-y-0.5">
+                {missingFields.map((field, idx) => (
+                  <li key={idx}>{field}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4" data-testid="medication-state-appropriate">
+          <p className="text-sm text-muted-foreground">
+            {medicationGuidance?.summary || "General OTC self-care medication options when safe. Consult a healthcare professional before taking any medication."}
+          </p>
+
+          {options.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {options.map((opt, idx) => (
+                <div key={idx} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+                  <div className="font-semibold text-primary text-base">{opt.generic_name}</div>
+                  {opt.purpose && (
+                    <div className="text-xs">
+                      <span className="font-medium text-foreground">Purpose:</span>{" "}
+                      <span className="text-muted-foreground">{opt.purpose}</span>
+                    </div>
+                  )}
+                  {opt.who_should_avoid && (
+                    <div className="text-xs">
+                      <span className="font-medium text-destructive">Who should avoid it:</span>{" "}
+                      <span className="text-muted-foreground">{opt.who_should_avoid}</span>
+                    </div>
+                  )}
+                  {opt.interactions && (
+                    <div className="text-xs">
+                      <span className="font-medium text-amber-600 dark:text-amber-400">Interactions:</span>{" "}
+                      <span className="text-muted-foreground">{opt.interactions}</span>
+                    </div>
+                  )}
+                  {opt.side_effects && (
+                    <div className="text-xs">
+                      <span className="font-medium text-foreground">Side effects:</span>{" "}
+                      <span className="text-muted-foreground">{opt.side_effects}</span>
+                    </div>
+                  )}
+                  {opt.dosing_info && (
+                    <div className="text-xs pt-1 border-t border-border/40">
+                      <span className="font-medium text-primary">Dosing info:</span>{" "}
+                      <span className="text-foreground">{opt.dosing_info}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground italic">
+              No specific self-treatment medications identified. Maintain hydration and rest, and consult a physician if symptoms persist.
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -151,6 +226,7 @@ export default function ReportDetail() {
   const prediction = report.prediction || {};
   const diseases = prediction.possible_diseases || [];
   const emergency = prediction.emergency_warning;
+  const medicationGuidance = prediction.medication_guidance || {};
   const snapshot = report.profile_snapshot || {};
 
   return (
@@ -191,18 +267,34 @@ export default function ReportDetail() {
             </div>
 
             <div className="w-full space-y-4 lg:min-w-[230px] lg:max-w-[280px]">
-              <ReportSeverityBadge confidence={report.confidence} align="right" />
+              <ReportSeverityBadge
+                confidence={report.confidence}
+                likelihood={diseases[0]?.likelihood}
+                align="right"
+              />
               <ReportActionBar report={report} user={user} />
             </div>
           </div>
         </section>
 
         {emergency ? (
-          <div className="flex gap-3 rounded-xl border-2 border-destructive bg-destructive/5 p-5" data-testid="emergency-warning">
-            <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
-            <div>
-              <div className="font-serif text-lg text-destructive">Possible emergency</div>
-              <p className="mt-1 text-sm text-foreground/90">{emergency}</p>
+          <div className="space-y-4">
+            <div className="flex gap-3 rounded-xl border-2 border-destructive bg-destructive/5 p-5 shadow-sm" data-testid="emergency-warning">
+              <AlertTriangle className="h-6 w-6 shrink-0 text-destructive" />
+              <div>
+                <div className="font-serif text-xl font-semibold text-destructive">URGENT MEDICAL EVALUATION REQUIRED</div>
+                <p className="mt-1 text-sm leading-relaxed text-foreground/90 font-medium">{emergency}</p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-destructive/30 bg-card p-5">
+              <div className="flex items-center gap-2 text-destructive">
+                <Stethoscope className="h-5 w-5" />
+                <div className="overline text-destructive font-semibold">Immediate Action Step</div>
+              </div>
+              <p className="mt-2 text-sm text-foreground/90">
+                Please seek immediate emergency medical care or visit the nearest healthcare facility. Do not rely on self-treatment for acute cardiac, respiratory, or severe symptoms.
+              </p>
             </div>
           </div>
         ) : null}
@@ -240,6 +332,11 @@ export default function ReportDetail() {
           />
         ) : (
           <div className="space-y-6" data-testid="diseases-list">
+            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+              <div className="overline text-primary">Differential Possibilities ({diseases.length})</div>
+              <span className="text-xs text-muted-foreground">Evaluated in order of clinical likelihood</span>
+            </div>
+
             {diseases.map((disease, index) => (
               <motion.article
                 key={`${disease.name}-${index}`}
@@ -259,8 +356,12 @@ export default function ReportDetail() {
                     <p className="mt-2 break-words text-sm text-muted-foreground">{disease.description}</p>
                   </div>
                   <div className="w-full space-y-3 sm:min-w-[210px] sm:max-w-[260px]">
-                    <ConfidenceBar value={disease.confidence} />
-                    <ReportSeverityBadge confidence={disease.confidence} compact align="right" />
+                    <ReportSeverityBadge
+                      confidence={disease.confidence}
+                      likelihood={disease.likelihood}
+                      compact
+                      align="right"
+                    />
                   </div>
                 </div>
 
@@ -281,6 +382,8 @@ export default function ReportDetail() {
             ))}
           </div>
         )}
+
+        <MedicationOptionsSection medicationGuidance={medicationGuidance} emergency={emergency} />
 
         <Disclaimer />
       </main>

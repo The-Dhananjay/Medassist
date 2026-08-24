@@ -1882,6 +1882,138 @@ def coerce_boolean(value: Any, default: bool = False) -> bool:
     return default
 
 
+DIAGNOSIS_SYSTEM_PROMPT = """
+You are a highly cautious, evidence-based AI medical triage and health education assistant for MedAssist.
+Your primary objective is to analyze patient symptoms in the context of their clinical profile (age, weight, height, existing conditions, kidney/liver status, current medications, allergies, pregnancy/breastfeeding status) and provide safe, structured, and personalized differential medical guidance.
+
+CRITICAL CLINICAL & SAFETY REASONING RULES:
+
+1. MULTIPLE DIFFERENTIAL POSSIBILITIES (3 TO 5):
+   - You MUST return between 3 and 5 clinically relevant possibilities (`possible_diseases` array with 3 to 5 items).
+   - Order possibilities from most likely to least likely, or by clinical urgency to rule out.
+   - Do NOT return only 1 possibility. Provide 3 to 5 distinct, plausible differential causes based on the patient's symptoms and history.
+   - Each possibility MUST include a qualitative likelihood tag (`likelihood` field):
+     - "higher": Most common / likely explanation.
+     - "moderate": Plausible explanation with matching symptoms.
+     - "lower": Less likely, but clinically relevant explanation.
+     - "rule_out": Serious or urgent condition that must be evaluated and ruled out by a medical professional.
+   - Never use definitive language like "You definitely have X". Use non-definitive phrasing: "Possible cause", "Could be consistent with", "Important to rule out", "Another possibility is".
+
+2. RED FLAGS & EMERGENCY TRIAGE (STATE C MEDICATION RULE):
+   - Check for red flags FIRST (e.g., chest pain, shortness of breath, breathing difficulty, fainting, one-sided weakness, slurred speech, lip/tongue swelling, severe allergic reaction, loss of consciousness, seizure, severe bleeding, coughing blood, severe abdominal pain).
+   - If ANY red flags are present:
+     1. Prioritize immediate emergency/urgent medical evaluation and set `emergency_warning` clearly.
+     2. `medication_guidance` MUST have `"status": "urgent_red_flag"` and `"summary": "No specific self-treatment medication is recommended at this time because the reported symptoms require urgent medical evaluation. Medication should not be used to delay professional assessment."`. Set `"options": []`.
+     3. Do NOT recommend casual OTC self-treatment as a substitute for emergency assessment.
+
+3. MEDICATION OPTIONS (3 DYNAMIC STATES):
+   - Provide a top-level `medication_guidance` object with 3 potential states:
+     - STATE A ("appropriate"): Low-risk problem where OTC medication info is appropriate. Provide structured `options` with: `generic_name`, `purpose`, `who_should_avoid`, `interactions`, `side_effects`, `dosing_info`.
+     - STATE B ("insufficient_info"): More patient information is needed (e.g., age, weight, allergies, current meds, kidney/liver status) before discussing medication safely. Include `"summary": "More information is needed before recommending a medication."` and list `missing_fields`.
+     - STATE C ("urgent_red_flag"): Symptoms require urgent care (red flags). Self-treatment is withheld to prioritize emergency evaluation.
+   - ANTIBIOTICS POLICY: NEVER recommend prescription antibiotics (e.g., Amoxicillin, Azithromycin, Ciprofloxacin, Doxycycline) for viral cold, flu, cough, or simple sore throat.
+
+4. AGE & PERSONALIZED SAFETY:
+   - CHILDREN (< 18 years): Do NOT assume adult dosing. Require exact age and weight. If weight is missing, ask for it or advise consulting a pediatrician/pharmacist.
+   - OLDER ADULTS (>= 65 years): Exercise caution for polypharmacy, renal clearance, sedation, and fall risks.
+   - ALLERGIES & INTERACTIONS: Cross-check reported allergies and current medications against any discussed medication options.
+
+Return ONLY valid JSON matching this schema:
+{
+  "possible_diseases": [
+    {
+      "name": "string (Non-definitive condition title)",
+      "confidence": 75,
+      "likelihood": "higher | moderate | lower | rule_out",
+      "description": "string (Summary of clinical context using non-definitive phrasing)",
+      "possible_causes": ["string"],
+      "recommended_medicines": ["string"],
+      "home_remedies": ["string"],
+      "diet": ["string"],
+      "precautions": ["string"],
+      "when_to_see_doctor": "string",
+      "doctor_required": true
+    }
+  ],
+  "medication_guidance": {
+    "status": "appropriate | insufficient_info | urgent_red_flag",
+    "summary": "string",
+    "missing_fields": ["string"],
+    "options": [
+      {
+        "generic_name": "string",
+        "purpose": "string",
+        "who_should_avoid": "string",
+        "interactions": "string",
+        "side_effects": "string",
+        "dosing_info": "string"
+      }
+    ]
+  },
+  "emergency_warning": "string",
+  "general_advice": "string",
+  "disclaimer": "string"
+}
+""".strip()
+
+EMERGENCY_PATTERNS: tuple[tuple[set[str], str], ...] = (
+    (
+        {"chest pain", "shortness of breath"},
+        "Chest pain with breathing difficulty is a potential cardiac or respiratory emergency. Seek immediate emergency medical care.",
+    ),
+    (
+        {"slurred speech", "one-sided weakness"},
+        "Stroke-like symptoms (slurred speech, facial drooping, arm weakness) require emergency medical evaluation immediately.",
+    ),
+    (
+        {"fainting"},
+        "Loss of consciousness or fainting can indicate a serious underlying cardiovascular or neurological condition and requires urgent evaluation.",
+    ),
+    (
+        {"unconsciousness"},
+        "Unconsciousness is a critical medical emergency. Seek emergency services immediately.",
+    ),
+    (
+        {"seizure"},
+        "Seizure activity is a medical emergency, especially if it is new, prolonged, or recurrent.",
+    ),
+)
+
+ALLOWED_OTC_KEYWORDS = (
+    "paracetamol",
+    "acetaminophen",
+    "ibuprofen",
+    "naproxen",
+    "ors",
+    "oral rehydration",
+    "cetirizine",
+    "loratadine",
+    "fexofenadine",
+    "diphenhydramine",
+    "guaifenesin",
+    "dextromethorphan",
+    "loperamide",
+    "antacid",
+    "saline nasal spray",
+    "throat lozenge",
+)
+
+BANNED_PRESCRIPTION_KEYWORDS = (
+    "amoxicillin",
+    "azithromycin",
+    "ciprofloxacin",
+    "doxycycline",
+    "cephalexin",
+    "levofloxacin",
+    "clarithromycin",
+    "augmentation",
+    "augmentin",
+    "metronidazole",
+    "trimethoprim",
+    "sulfamethoxazole",
+)
+
+
 def filter_otc_medicines(items: list[str]) -> list[str]:
     safe_items: list[str] = []
     for item in items:
@@ -1926,24 +2058,44 @@ def normalize_prediction(
     if not isinstance(diseases, list):
         return rule_based_fallback(symptoms, additional_notes)
 
+    emergency_warning = normalize_optional_text(
+        raw_prediction.get("emergency_warning"),
+        lower=False,
+    ) or detect_emergency_warning(symptoms, additional_notes)
+
     normalized_diseases: list[dict[str, Any]] = []
-    for item in diseases[:4]:
+    for item in diseases[:5]:
         if not isinstance(item, dict):
             continue
         name = normalize_optional_text(str(item.get("name", "")), lower=False)
         if not name:
             continue
+
+        raw_confidence = coerce_confidence(item.get("confidence"), 50)
+        raw_likelihood = normalize_optional_text(str(item.get("likelihood", "")), lower=True)
+        if not raw_likelihood or raw_likelihood not in {"higher", "moderate", "lower", "rule_out"}:
+            if emergency_warning and any(kw in name.lower() for kw in ["cardiac", "embolism", "emergency", "ischemic", "pneumonia"]):
+                raw_likelihood = "rule_out"
+            elif raw_confidence >= 75:
+                raw_likelihood = "higher"
+            elif raw_confidence >= 60:
+                raw_likelihood = "moderate"
+            else:
+                raw_likelihood = "lower"
+
         medicines = filter_otc_medicines(
             normalize_string_list(item.get("recommended_medicines"))
         )
+
         normalized_diseases.append(
             {
                 "name": name,
-                "confidence": coerce_confidence(item.get("confidence"), 50),
+                "confidence": raw_confidence,
+                "likelihood": raw_likelihood,
                 "description": normalize_optional_text(
                     str(item.get("description", "")), lower=False
                 )
-                or "This is a possible explanation based on the provided symptoms.",
+                or "Possible explanation based on clinical presentation.",
                 "possible_causes": normalize_string_list(item.get("possible_causes")),
                 "recommended_medicines": medicines,
                 "home_remedies": normalize_string_list(item.get("home_remedies")),
@@ -1953,7 +2105,7 @@ def normalize_prediction(
                     str(item.get("when_to_see_doctor", "")),
                     lower=False,
                 )
-                or "Seek medical care if symptoms worsen, persist, or you develop red-flag symptoms.",
+                or "Seek professional medical care if symptoms persist, worsen, or present red flags.",
                 "doctor_required": coerce_boolean(item.get("doctor_required")),
             }
         )
@@ -1962,14 +2114,48 @@ def normalize_prediction(
         return rule_based_fallback(symptoms, additional_notes)
 
     normalized_diseases.sort(key=lambda item: item["confidence"], reverse=True)
-    emergency_warning = normalize_optional_text(
-        raw_prediction.get("emergency_warning"),
-        lower=False,
-    ) or detect_emergency_warning(symptoms, additional_notes)
+
+    raw_med_guidance = raw_prediction.get("medication_guidance")
+    if emergency_warning:
+        medication_guidance = {
+            "status": "urgent_red_flag",
+            "summary": "No specific self-treatment medication is recommended at this time because the reported symptoms require urgent medical evaluation. Medication should not be used to delay professional assessment.",
+            "missing_fields": [],
+            "options": []
+        }
+    elif isinstance(raw_med_guidance, dict) and raw_med_guidance.get("status"):
+        status = str(raw_med_guidance.get("status")).lower()
+        opts = []
+        if isinstance(raw_med_guidance.get("options"), list):
+            for opt in raw_med_guidance["options"]:
+                if isinstance(opt, dict) and opt.get("generic_name"):
+                    opts.append({
+                        "generic_name": normalize_optional_text(str(opt.get("generic_name")), lower=False),
+                        "purpose": normalize_optional_text(str(opt.get("purpose")), lower=False),
+                        "who_should_avoid": normalize_optional_text(str(opt.get("who_should_avoid")), lower=False),
+                        "interactions": normalize_optional_text(str(opt.get("interactions")), lower=False),
+                        "side_effects": normalize_optional_text(str(opt.get("side_effects")), lower=False),
+                        "dosing_info": normalize_optional_text(str(opt.get("dosing_info")), lower=False),
+                    })
+        medication_guidance = {
+            "status": status if status in {"appropriate", "insufficient_info", "urgent_red_flag"} else "appropriate",
+            "summary": normalize_optional_text(str(raw_med_guidance.get("summary", "")), lower=False)
+            or ("No self-treatment medication is recommended." if status == "urgent_red_flag" else ("More information is needed before recommending a medication." if status == "insufficient_info" else "Medication options for self-care.")),
+            "missing_fields": normalize_string_list(raw_med_guidance.get("missing_fields")),
+            "options": opts
+        }
+    else:
+        medication_guidance = {
+            "status": "appropriate",
+            "summary": "General self-care medication options when safe. Consult a healthcare professional before starting any medication.",
+            "missing_fields": [],
+            "options": []
+        }
+
     general_advice = normalize_optional_text(
         raw_prediction.get("general_advice"),
         lower=False,
-    ) or "Stay hydrated, rest, and seek medical evaluation if symptoms persist or worsen."
+    ) or "Stay hydrated, rest, and seek professional evaluation if symptoms persist or worsen."
     disclaimer = normalize_optional_text(
         raw_prediction.get("disclaimer"),
         lower=False,
@@ -1977,6 +2163,7 @@ def normalize_prediction(
 
     return {
         "possible_diseases": normalized_diseases,
+        "medication_guidance": medication_guidance,
         "emergency_warning": emergency_warning or "",
         "general_advice": general_advice,
         "disclaimer": disclaimer,
@@ -1988,214 +2175,223 @@ def rule_based_fallback(
 ) -> dict[str, Any]:
     normalized = {symptom.lower() for symptom in symptoms}
     diseases: list[dict[str, Any]] = []
-
-    if normalized & {"fever", "cough", "sore throat", "runny nose", "fatigue"}:
-        diseases.append(
-            {
-                "name": "Viral Upper Respiratory Infection",
-                "confidence": 72,
-                "description": "A common viral illness affecting the nose and throat that often improves with rest and fluids.",
-                "possible_causes": [
-                    "Seasonal viral exposure",
-                    "Close contact with an infected person",
-                ],
-                "recommended_medicines": [
-                    "Paracetamol 500mg for fever or body aches",
-                    "Cetirizine 10mg for congestion or sneezing",
-                ],
-                "home_remedies": ["Warm fluids", "Steam inhalation", "Adequate rest"],
-                "diet": ["Warm soups", "Water", "Soft foods if the throat is sore"],
-                "precautions": [
-                    "Wash hands frequently",
-                    "Avoid close contact with others while symptomatic",
-                ],
-                "when_to_see_doctor": "Seek care if fever lasts more than 3 days, breathing worsens, or symptoms become severe.",
-                "doctor_required": False,
-            }
-        )
-        diseases.append(
-            {
-                "name": "Influenza-like Illness",
-                "confidence": 61,
-                "description": "Flu-like symptoms can cause fever, cough, body aches, fatigue, and feeling generally unwell.",
-                "possible_causes": ["Influenza virus", "Another respiratory virus"],
-                "recommended_medicines": [
-                    "Paracetamol 500mg",
-                    "Ibuprofen 400mg with food if safe for you",
-                ],
-                "home_remedies": [
-                    "Rest",
-                    "Hydration",
-                    "Use a humidified room if coughing",
-                ],
-                "diet": ["Water", "Electrolyte fluids", "Simple easy-to-digest meals"],
-                "precautions": ["Monitor breathing", "Avoid strenuous activity until improved"],
-                "when_to_see_doctor": "Seek urgent care if shortness of breath, dehydration, or confusion develops.",
-                "doctor_required": False,
-            }
-        )
-
-    if normalized & {"diarrhea", "vomiting", "abdominal pain", "nausea"}:
-        diseases.append(
-            {
-                "name": "Acute Gastroenteritis",
-                "confidence": 69,
-                "description": "Inflammation of the stomach and intestines commonly causes nausea, vomiting, diarrhea, and cramping.",
-                "possible_causes": ["Viral infection", "Foodborne illness"],
-                "recommended_medicines": [
-                    "ORS (oral rehydration salts)",
-                    "Loperamide only for short-term diarrhea if appropriate",
-                ],
-                "home_remedies": [
-                    "Small frequent sips of fluids",
-                    "Rest",
-                    "Gradually resume bland foods",
-                ],
-                "diet": ["Bananas", "Rice", "Toast", "Clear soups"],
-                "precautions": [
-                    "Watch for dehydration",
-                    "Avoid oily or spicy foods until improved",
-                ],
-                "when_to_see_doctor": "Seek care if you cannot keep fluids down, develop blood in stool, or have high fever.",
-                "doctor_required": True,
-            }
-        )
-        diseases.append(
-            {
-                "name": "Dehydration Related Symptoms",
-                "confidence": 53,
-                "description": "Fluid loss from vomiting or diarrhea can lead to dizziness, weakness, headache, and dry mouth.",
-                "possible_causes": [
-                    "Reduced fluid intake",
-                    "Ongoing gastrointestinal fluid loss",
-                ],
-                "recommended_medicines": ["ORS (oral rehydration salts)"],
-                "home_remedies": ["Sip fluids regularly", "Rest in a cool environment"],
-                "diet": ["Electrolyte drinks", "Water-rich foods", "Simple bland foods"],
-                "precautions": [
-                    "Monitor urine output",
-                    "Seek help if dizziness becomes severe",
-                ],
-                "when_to_see_doctor": "Seek urgent care if dehydration becomes severe, especially with confusion or fainting.",
-                "doctor_required": True,
-            }
-        )
-
-    if normalized & {"headache", "dizziness", "nausea"}:
-        diseases.append(
-            {
-                "name": "Tension Headache or Migraine Pattern",
-                "confidence": 58,
-                "description": "Headache with nausea or light sensitivity may reflect a tension headache or migraine-like pattern.",
-                "possible_causes": ["Stress", "Dehydration", "Sleep disruption"],
-                "recommended_medicines": [
-                    "Paracetamol 500mg",
-                    "Ibuprofen 400mg with food if safe for you",
-                ],
-                "home_remedies": [
-                    "Rest in a quiet room",
-                    "Hydration",
-                    "Cold compress",
-                ],
-                "diet": ["Water", "Light meals", "Avoid alcohol if symptoms are active"],
-                "precautions": ["Limit screen time", "Track recurrent triggers"],
-                "when_to_see_doctor": "Seek care if the headache is sudden, the worst of your life, or linked to weakness or vision loss.",
-                "doctor_required": False,
-            }
-        )
-
-    if normalized & {"chest pain", "shortness of breath", "palpitations"}:
-        diseases.append(
-            {
-                "name": "Cardiopulmonary or Anxiety-Related Symptoms",
-                "confidence": 49,
-                "description": "Chest discomfort, breathing difficulty, or palpitations can have causes ranging from anxiety to heart or lung conditions.",
-                "possible_causes": [
-                    "Anxiety or panic",
-                    "Respiratory irritation",
-                    "Cardiac conditions",
-                ],
-                "recommended_medicines": [],
-                "home_remedies": ["Rest while seeking urgent evaluation"],
-                "diet": ["Avoid stimulants until evaluated"],
-                "precautions": ["Do not ignore severe or persistent symptoms"],
-                "when_to_see_doctor": "Seek emergency medical attention immediately if symptoms are severe, persistent, or associated with sweating or fainting.",
-                "doctor_required": True,
-            }
-        )
-
-    if normalized & {"rash", "sneezing", "itching"}:
-        diseases.append(
-            {
-                "name": "Allergic Reaction",
-                "confidence": 55,
-                "description": "Rash or sneezing may reflect an allergic response to food, environment, or another trigger.",
-                "possible_causes": [
-                    "Environmental allergens",
-                    "Food sensitivity",
-                    "Medication reaction",
-                ],
-                "recommended_medicines": ["Cetirizine 10mg", "Loratadine 10mg"],
-                "home_remedies": [
-                    "Avoid suspected triggers",
-                    "Cool compress for itchy skin",
-                ],
-                "diet": ["Avoid any recently suspected trigger foods"],
-                "precautions": ["Monitor for swelling or breathing difficulty"],
-                "when_to_see_doctor": "Seek emergency care if you develop facial swelling, tongue swelling, or trouble breathing.",
-                "doctor_required": False,
-            }
-        )
-
-    if len(diseases) < 2:
-        diseases.append(
-            {
-                "name": "Non-specific Viral Syndrome",
-                "confidence": 44,
-                "description": "The symptom pattern may fit a common short-lived viral illness without a single clear diagnosis yet.",
-                "possible_causes": [
-                    "Common viral infection",
-                    "General inflammation",
-                    "Temporary stress on the body",
-                ],
-                "recommended_medicines": [
-                    "Paracetamol 500mg as needed for fever or pain"
-                ],
-                "home_remedies": [
-                    "Rest",
-                    "Hydration",
-                    "Monitor symptoms over the next 24 to 48 hours",
-                ],
-                "diet": ["Light balanced meals", "Plenty of fluids"],
-                "precautions": ["Reassess if new symptoms appear"],
-                "when_to_see_doctor": "Seek care if symptoms persist beyond a few days or become more intense.",
-                "doctor_required": False,
-            }
-        )
-
-    if len(diseases) < 2:
-        diseases.append(
-            {
-                "name": "Mild Dehydration or Fatigue State",
-                "confidence": 38,
-                "description": "Poor sleep, stress, low fluid intake, or a mild illness can create vague symptoms such as weakness or headache.",
-                "possible_causes": ["Low fluid intake", "Poor sleep", "Stress", "Recovery from mild illness"],
-                "recommended_medicines": [
-                    "ORS (oral rehydration salts) if fluid intake has been poor"
-                ],
-                "home_remedies": ["Rest", "Regular fluids", "Light meals"],
-                "diet": ["Water", "Electrolytes", "Simple nourishing foods"],
-                "precautions": ["Monitor symptoms closely"],
-                "when_to_see_doctor": "Seek care if you are not improving, or if alarming symptoms develop.",
-                "doctor_required": False,
-            }
-        )
-
-    diseases.sort(key=lambda item: item["confidence"], reverse=True)
     emergency_warning = detect_emergency_warning(symptoms, additional_notes)
 
+    if emergency_warning or normalized & {"chest pain", "shortness of breath", "dizziness", "fainting"}:
+        diseases.append({
+            "name": "Acute Cardiopulmonary or Respiratory Concern",
+            "confidence": 85,
+            "likelihood": "rule_out",
+            "description": "Symptoms such as chest pain, breathing difficulty, or dizziness can indicate a potentially serious cardiac or lower respiratory condition requiring urgent medical evaluation.",
+            "possible_causes": ["Cardiovascular event", "Pneumonia or severe lower respiratory infection", "Pulmonary embolism", "Severe allergic or metabolic disruption"],
+            "recommended_medicines": [],
+            "home_remedies": ["Rest while seeking immediate medical assessment"],
+            "diet": ["Avoid stimulants or large meals while seeking evaluation"],
+            "precautions": ["Do not delay emergency assessment", "Avoid exertion"],
+            "when_to_see_doctor": "Seek immediate emergency room evaluation or call local emergency services right away.",
+            "doctor_required": True,
+        })
+        diseases.append({
+            "name": "Pneumonia or Lower Respiratory Infection",
+            "confidence": 72,
+            "likelihood": "moderate",
+            "description": "Infection of the lungs can cause fever, cough, chest discomfort, and shortness of breath.",
+            "possible_causes": ["Bacterial or viral respiratory infection", "Complication of upper respiratory viral illness"],
+            "recommended_medicines": [],
+            "home_remedies": ["Upright resting posture", "Hydration while obtaining medical care"],
+            "diet": ["Clear fluids"],
+            "precautions": ["Monitor oxygen levels if available", "Watch for worsening breathlessness"],
+            "when_to_see_doctor": "Immediate medical evaluation is needed for proper chest examination and imaging.",
+            "doctor_required": True,
+        })
+        diseases.append({
+            "name": "Pulmonary Embolism / Vascular Concern",
+            "confidence": 64,
+            "likelihood": "rule_out",
+            "description": "A blockage in the lung blood vessels can present with sudden chest pain, breathlessness, or lightheadedness.",
+            "possible_causes": ["Recent prolonged immobility", "Blood clotting disorder"],
+            "recommended_medicines": [],
+            "home_remedies": ["Immediate professional medical assessment"],
+            "diet": ["NPO / Avoid eating until evaluated"],
+            "precautions": ["Seek emergency room care immediately"],
+            "when_to_see_doctor": "Go to the nearest emergency room immediately.",
+            "doctor_required": True,
+        })
+        diseases.append({
+            "name": "Severe Viral Infection with Cardiopulmonary Stress",
+            "confidence": 55,
+            "likelihood": "lower",
+            "description": "Severe systemic viral illness (such as acute influenza) can cause systemic weakness, high fever, chest tightness, and dizziness.",
+            "possible_causes": ["Influenza virus", "Severe viral illness"],
+            "recommended_medicines": [],
+            "home_remedies": ["Strict bed rest", "Hydration under medical supervision"],
+            "diet": ["Oral rehydration fluids"],
+            "precautions": ["Do not attempt self-treatment when breathing is affected"],
+            "when_to_see_doctor": "Requires doctor evaluation to rule out secondary bacterial complications or hypoxia.",
+            "doctor_required": True,
+        })
+
+    if normalized & {"fever", "cough", "sore throat", "runny nose", "fatigue", "body pain"} and not emergency_warning:
+        diseases.append({
+            "name": "Acute Viral Upper Respiratory Infection",
+            "confidence": 78,
+            "likelihood": "higher",
+            "description": "Common viral infection affecting nasal passages, throat, and airways.",
+            "possible_causes": ["Rhinovirus", "Adenovirus", "Seasonal respiratory virus"],
+            "recommended_medicines": [
+                "Paracetamol 500mg for fever or body aches",
+                "Cetirizine 10mg for congestion or sneezing",
+            ],
+            "home_remedies": ["Warm fluids", "Steam inhalation", "Adequate rest"],
+            "diet": ["Warm soups", "Hydrating fluids"],
+            "precautions": ["Wash hands frequently", "Avoid close contact with others"],
+            "when_to_see_doctor": "Seek care if fever lasts more than 3 days or breathing becomes difficult.",
+            "doctor_required": False,
+        })
+        diseases.append({
+            "name": "Influenza-like Illness (Flu)",
+            "confidence": 68,
+            "likelihood": "moderate",
+            "description": "Systemic viral infection causing sudden fever, body aches, headache, and severe fatigue.",
+            "possible_causes": ["Influenza A or B virus"],
+            "recommended_medicines": [
+                "Paracetamol 500mg as needed",
+                "Ibuprofen 400mg with food if safe",
+            ],
+            "home_remedies": ["Bed rest", "Warm saline throat gargle"],
+            "diet": ["Clear soups", "Electrolyte fluids"],
+            "precautions": ["Monitor temperature", "Isolate to prevent spread"],
+            "when_to_see_doctor": "Seek care if high fever persists or shortness of breath develops.",
+            "doctor_required": False,
+        })
+        diseases.append({
+            "name": "Acute Pharyngitis or Tonsillitis",
+            "confidence": 58,
+            "likelihood": "lower",
+            "description": "Inflammation of the throat tissue causing throat pain, fever, and difficulty swallowing.",
+            "possible_causes": ["Viral pharyngitis", "Streptococcal bacterial pharyngitis"],
+            "recommended_medicines": [
+                "Paracetamol 500mg for pain relief",
+                "Warm throat lozenges",
+            ],
+            "home_remedies": ["Saltwater gargle 3 times daily", "Humidified air"],
+            "diet": ["Soft cold or warm foods"],
+            "precautions": ["Avoid hot spicy items"],
+            "when_to_see_doctor": "Consult a doctor if throat pain is severe, accompanied by white spots on tonsils, or difficulty opening mouth.",
+            "doctor_required": False,
+        })
+
+    if normalized & {"diarrhea", "vomiting", "abdominal pain", "nausea"}:
+        diseases.append({
+            "name": "Acute Gastroenteritis",
+            "confidence": 75,
+            "likelihood": "higher",
+            "description": "Inflammation of the stomach and intestines causing nausea, vomiting, diarrhea, and abdominal cramping.",
+            "possible_causes": ["Norovirus", "Rotavirus", "Foodborne bacterial contamination"],
+            "recommended_medicines": ["ORS (oral rehydration salts)"],
+            "home_remedies": ["Small frequent sips of electrolyte solutions", "Rest"],
+            "diet": ["BRAT diet (Bananas, Rice, Applesauce, Toast)"],
+            "precautions": ["Watch for dehydration signs", "Maintain hand hygiene"],
+            "when_to_see_doctor": "Seek medical evaluation if unable to keep liquids down for >24h or if blood appears in stool.",
+            "doctor_required": True,
+        })
+        diseases.append({
+            "name": "Dehydration Secondary to Fluid Loss",
+            "confidence": 62,
+            "likelihood": "moderate",
+            "description": "Depletion of body fluids and electrolytes resulting in weakness, dizziness, and dry mouth.",
+            "possible_causes": ["Excessive fluid loss from vomiting or diarrhea"],
+            "recommended_medicines": ["ORS (oral rehydration salts)"],
+            "home_remedies": ["Regular electrolyte fluid intake"],
+            "diet": ["Hydrating broths and electrolyte solutions"],
+            "precautions": ["Monitor urine color and volume"],
+            "when_to_see_doctor": "Seek urgent care if dark urine, confusion, or lightheadedness worsens.",
+            "doctor_required": True,
+        })
+        diseases.append({
+            "name": "Food Intolerance or Dietary Reaction",
+            "confidence": 50,
+            "likelihood": "lower",
+            "description": "Adverse GI reaction following specific food intake.",
+            "possible_causes": ["Lactose intolerance", "Spicy or contaminated food item"],
+            "recommended_medicines": ["Antacida or ORS if mild"],
+            "home_remedies": ["Rest GI tract with light fluids"],
+            "diet": ["Bland low-fat foods"],
+            "precautions": ["Avoid suspected food trigger"],
+            "when_to_see_doctor": "Seek care if symptoms do not improve within 48 hours.",
+            "doctor_required": False,
+        })
+
+    if len(diseases) < 3:
+        diseases.append({
+            "name": "Non-specific Viral Syndrome",
+            "confidence": 55,
+            "likelihood": "moderate",
+            "description": "Generalized viral presentation causing mild systemic discomfort.",
+            "possible_causes": ["Common viral exposure"],
+            "recommended_medicines": ["Paracetamol 500mg as needed"],
+            "home_remedies": ["Rest", "Hydration"],
+            "diet": ["Balanced light meals"],
+            "precautions": ["Monitor symptoms for changes"],
+            "when_to_see_doctor": "Seek care if new symptoms emerge.",
+            "doctor_required": False,
+        })
+        diseases.append({
+            "name": "Mild Dehydration or Physical Fatigue State",
+            "confidence": 45,
+            "likelihood": "lower",
+            "description": "Temporary physical strain or fluid insufficiency.",
+            "possible_causes": ["Inadequate fluid intake", "Lack of sleep"],
+            "recommended_medicines": ["ORS (oral rehydration salts)"],
+            "home_remedies": ["Rest and recovery"],
+            "diet": ["Water and electrolytes"],
+            "precautions": ["Avoid overexertion"],
+            "when_to_see_doctor": "Seek advice if weakness persists.",
+            "doctor_required": False,
+        })
+        diseases.append({
+            "name": "Environmental or Seasonal Sensitivity",
+            "confidence": 40,
+            "likelihood": "lower",
+            "description": "Mild reaction to ambient environmental factors or fatigue.",
+            "possible_causes": ["Weather changes", "Allergen exposure"],
+            "recommended_medicines": [],
+            "home_remedies": ["Fresh air", "Adequate sleep"],
+            "diet": ["Hydrating foods"],
+            "precautions": ["Keep living area clean"],
+            "when_to_see_doctor": "Seek care if symptoms expand.",
+            "doctor_required": False,
+        })
+
+    diseases.sort(key=lambda item: item["confidence"], reverse=True)
+
+    if emergency_warning:
+        medication_guidance = {
+            "status": "urgent_red_flag",
+            "summary": "No specific self-treatment medication is recommended at this time because the reported symptoms require urgent medical evaluation. Medication should not be used to delay professional assessment.",
+            "missing_fields": [],
+            "options": []
+        }
+    else:
+        medication_guidance = {
+            "status": "appropriate",
+            "summary": "General self-care medication options when safe. Consult a healthcare professional before starting any medication.",
+            "missing_fields": [],
+            "options": [
+                {
+                    "generic_name": "Paracetamol / Acetaminophen",
+                    "purpose": "Helps relieve fever and mild-to-moderate pain.",
+                    "who_should_avoid": "Avoid if severe liver disease or known allergy.",
+                    "interactions": "Check with doctor if taking other liver-metabolized medicines.",
+                    "side_effects": "Rare when taken as directed.",
+                    "dosing_info": "500mg every 4-6 hours as needed (max 4000mg/day for adults)."
+                }
+            ]
+        }
+
     return {
-        "possible_diseases": diseases[:4],
+        "possible_diseases": diseases[:5],
+        "medication_guidance": medication_guidance,
         "emergency_warning": emergency_warning,
         "general_advice": "Monitor symptoms closely, stay hydrated, and seek professional evaluation if symptoms worsen, persist, or feel concerning.",
         "disclaimer": DEFAULT_DISCLAIMER,

@@ -3,37 +3,58 @@ export function getDisplayConfidence(confidence, fallback = 65) {
   return Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
 }
 
-export function getSeverityMeta(confidence) {
+export function getSeverityMeta(confidence, likelihoodKey) {
+  if (likelihoodKey) {
+    const key = String(likelihoodKey).toLowerCase();
+    if (key === "higher") {
+      return {
+        label: "Higher likelihood",
+        slug: "higher",
+        className: "border-primary/30 bg-primary/10 text-primary font-semibold",
+      };
+    }
+    if (key === "moderate") {
+      return {
+        label: "Moderate likelihood",
+        slug: "moderate",
+        className: "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold",
+      };
+    }
+    if (key === "lower") {
+      return {
+        label: "Lower likelihood",
+        slug: "lower",
+        className: "border-slate-500/30 bg-slate-500/15 text-slate-700 dark:text-slate-300 font-semibold",
+      };
+    }
+    if (key === "rule_out") {
+      return {
+        label: "Important to rule out",
+        slug: "rule_out",
+        className: "border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-300 font-semibold",
+      };
+    }
+  }
+
   const pct = getDisplayConfidence(confidence);
-
-  if (pct <= 50) {
+  if (pct >= 75) {
     return {
-      label: "Mild",
-      slug: "mild",
-      className: "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+      label: "Higher likelihood",
+      slug: "higher",
+      className: "border-primary/30 bg-primary/10 text-primary font-semibold",
     };
   }
-
-  if (pct <= 70) {
+  if (pct >= 60) {
     return {
-      label: "Moderate",
+      label: "Moderate likelihood",
       slug: "moderate",
-      className: "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300",
+      className: "border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold",
     };
   }
-
-  if (pct <= 85) {
-    return {
-      label: "High",
-      slug: "high",
-      className: "border-orange-500/30 bg-orange-500/15 text-orange-700 dark:text-orange-300",
-    };
-  }
-
   return {
-    label: "Critical Attention",
-    slug: "critical",
-    className: "border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-300",
+    label: "Lower likelihood",
+    slug: "lower",
+    className: "border-slate-500/30 bg-slate-500/15 text-slate-700 dark:text-slate-300 font-semibold",
   };
 }
 
@@ -87,7 +108,7 @@ export function getReportShareTitle(report) {
 
 export function buildReportSummary(report, user) {
   const primary = getPrimaryDiagnosis(report);
-  const severity = getSeverityMeta(primary.confidence || report?.confidence);
+  const severity = getSeverityMeta(primary.confidence || report?.confidence, primary.likelihood);
   const profile = report?.profile_snapshot || {};
 
   return [
@@ -102,10 +123,9 @@ export function buildReportSummary(report, user) {
     `Current medicines: ${formatReportValue(profile?.current_medicines)}`,
     `Allergies: ${formatReportValue(profile?.allergies)}`,
     `Primary diagnosis: ${formatReportValue(primary?.name)}`,
-    `Confidence: ${getDisplayConfidence(primary?.confidence || report?.confidence)}%`,
-    `Severity: ${severity.label}`,
+    `Likelihood: ${severity.label}`,
+    `AI Assessment Confidence: ${getDisplayConfidence(primary?.confidence || report?.confidence)}%`,
     `Possible causes: ${formatReportValue(primary?.possible_causes)}`,
-    `Recommended medicines: ${formatReportValue(primary?.recommended_medicines)}`,
     `Home remedies: ${formatReportValue(primary?.home_remedies)}`,
     `Diet: ${formatReportValue(primary?.diet)}`,
     `Precautions: ${formatReportValue(primary?.precautions)}`,

@@ -7,9 +7,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from server import app, detect_emergency_warning, filter_otc_medicines, build_diagnosis_prompt, resolve_diagnosis_context, PredictInput
+from server import app, detect_emergency_warning, filter_otc_medicines, build_diagnosis_prompt, resolve_diagnosis_context, PredictInput, rule_based_fallback, normalize_prediction
 
-print("Starting 14 Medical Scenario & Autocomplete Payload Safety Tests...")
+print("Starting 15 Medical Scenario & Multi-Possibility Safety Tests...")
 
 # Scenario 1: Adult with simple headache
 def test_scenario_1_adult_headache():
@@ -192,6 +192,18 @@ def test_scenario_14_array_list_payloads():
     assert "Metformin, Paracetamol" in prompt
     print("Scenario 14 Passed: Array list payloads from autocomplete multi-selects formatted into clinical prompt.")
 
+# Scenario 15: Multi-Possibility & State C Red Flag Medication Withholding
+def test_scenario_15_multi_possibilities_and_red_flag_medication():
+    res = rule_based_fallback(["Chest Pain", "Shortness of Breath", "Dizziness"], "Feeling lightheaded")
+    diseases = res.get("possible_diseases", [])
+    med_guidance = res.get("medication_guidance", {})
+
+    assert len(diseases) >= 3, f"Expected at least 3 possibilities, got {len(diseases)}"
+    assert res.get("emergency_warning") != ""
+    assert med_guidance.get("status") == "urgent_red_flag"
+    assert "urgent medical evaluation" in med_guidance.get("summary", "").lower()
+    print("Scenario 15 Passed: 3+ possibilities returned and self-treatment medication withheld for red-flag chest pain + shortness of breath + dizziness.")
+
 if __name__ == "__main__":
     test_scenario_1_adult_headache()
     test_scenario_2_child_fever()
@@ -207,4 +219,5 @@ if __name__ == "__main__":
     test_scenario_12_exact_dose()
     test_scenario_13_drug_interaction()
     test_scenario_14_array_list_payloads()
-    print("ALL 14 MEDICAL SCENARIO SAFETY & AUTOCOMPLETE TESTS PASSED SUCCESSFULLY!")
+    test_scenario_15_multi_possibilities_and_red_flag_medication()
+    print("ALL 15 MEDICAL SCENARIO SAFETY, MULTI-POSSIBILITY & AUTOCOMPLETE TESTS PASSED SUCCESSFULLY!")
