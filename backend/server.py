@@ -416,9 +416,9 @@ class ProfileUpdate(RequestModel):
     gender: str | None = Field(default=None, max_length=32)
     weight: float | None = Field(default=None, ge=1, le=500)
     height: float | None = Field(default=None, ge=30, le=300)
-    medical_history: str | None = Field(default=None, max_length=1000)
-    allergies: str | None = Field(default=None, max_length=500)
-    current_medicines: str | None = Field(default=None, max_length=500)
+    medical_history: list[str] | str | None = Field(default=None)
+    allergies: list[str] | str | None = Field(default=None)
+    current_medicines: list[str] | str | None = Field(default=None)
     is_pregnant: bool | None = Field(default=None)
     is_breastfeeding: bool | None = Field(default=None)
     kidney_liver_disease: str | None = Field(default=None, max_length=500)
@@ -447,9 +447,9 @@ class PredictInput(RequestModel):
     gender: str | None = Field(default=None, max_length=32)
     weight: float | None = Field(default=None, ge=1, le=500)
     height: float | None = Field(default=None, ge=30, le=300)
-    existing_diseases: str | None = Field(default=None, max_length=1000)
-    allergies: str | None = Field(default=None, max_length=500)
-    current_medicines: str | None = Field(default=None, max_length=500)
+    existing_diseases: list[str] | str | None = Field(default=None)
+    allergies: list[str] | str | None = Field(default=None)
+    current_medicines: list[str] | str | None = Field(default=None)
     is_pregnant: bool | None = Field(default=None)
     is_breastfeeding: bool | None = Field(default=None)
     kidney_liver_disease: str | None = Field(default=None, max_length=500)
@@ -482,7 +482,11 @@ class PredictInput(RequestModel):
         "kidney_liver_disease",
     )
     @classmethod
-    def normalize_predict_fields(cls, value: str | None) -> str | None:
+    def normalize_predict_fields(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            cleaned_list = [normalize_optional_text(str(v), lower=False) for v in value]
+            return [v for v in cleaned_list if v]
+        return normalize_optional_text(value, lower=False)
         return normalize_optional_text(value, lower=False)
 
 
@@ -1746,6 +1750,16 @@ def get_current_session_id(request: Request) -> str | None:
     return None
 
 
+def format_medical_list_field(value: list[str] | str | None) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, list):
+        items = [str(item).strip() for item in value if str(item).strip()]
+        return ", ".join(items) if items else None
+    cleaned = str(value).strip()
+    return cleaned if cleaned else None
+
+
 def resolve_diagnosis_context(
     payload: PredictInput, user: dict[str, Any]
 ) -> dict[str, Any]:
@@ -1758,10 +1772,15 @@ def resolve_diagnosis_context(
         "gender": payload.gender or user.get("gender"),
         "weight": payload.weight if payload.weight is not None else user.get("weight"),
         "height": payload.height if payload.height is not None else user.get("height"),
-        "existing_diseases": payload.existing_diseases or user.get("medical_history"),
-        "allergies": payload.allergies or user.get("allergies"),
-        "current_medicines": payload.current_medicines
-        or user.get("current_medicines"),
+        "existing_diseases": format_medical_list_field(
+            payload.existing_diseases or user.get("medical_history")
+        ),
+        "allergies": format_medical_list_field(
+            payload.allergies or user.get("allergies")
+        ),
+        "current_medicines": format_medical_list_field(
+            payload.current_medicines or user.get("current_medicines")
+        ),
         "is_pregnant": payload.is_pregnant if payload.is_pregnant is not None else user.get("is_pregnant"),
         "is_breastfeeding": payload.is_breastfeeding if payload.is_breastfeeding is not None else user.get("is_breastfeeding"),
         "kidney_liver_disease": payload.kidney_liver_disease or user.get("kidney_liver_disease"),

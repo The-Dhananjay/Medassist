@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import AppShell from "@/components/AppShell";
 import Disclaimer from "@/components/Disclaimer";
+import AutocompleteMultiSelect from "@/components/AutocompleteMultiSelect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,50 @@ import HealthPulseAnimation from "@/components/animations/HealthPulseAnimation";
 const CORE_SYMPTOMS = [
   "Fever", "Cough", "Headache", "Vomiting", "Chest Pain", "Fatigue",
   "Sore Throat", "Body Pain", "Nausea", "Diarrhea", "Shortness of Breath",
+  "Runny Nose", "Sneezing", "Dizziness", "Loss of Appetite", "Abdominal Pain",
+  "Back Pain", "Rash", "Chills", "Sweating", "Muscle Pain", "Joint Pain",
+  "Blurred Vision", "Ear Pain", "Constipation", "Bloating", "Insomnia",
 ];
+
+const COMMON_CONDITIONS = [
+  "Asthma", "Asthma (childhood)", "Allergic asthma",
+  "Diabetes", "Type 1 diabetes", "Type 2 diabetes",
+  "Hypertension", "High Blood Pressure",
+  "Hypothyroidism", "Hyperthyroidism",
+  "Chronic Kidney Disease", "Kidney Stones",
+  "Fatty Liver Disease", "Hepatitis",
+  "Migraine", "Epilepsy", "Depression", "Anxiety",
+  "Rheumatoid Arthritis", "Osteoarthritis",
+  "Gastroesophageal Reflux (GERD)", "Stomach Ulcer",
+  "Coronary Artery Disease", "Heart Failure", "Stroke",
+];
+
+const COMMON_ALLERGIES = [
+  "Penicillin", "Amoxicillin", "Ampicillin",
+  "Peanuts", "Tree Nuts", "Latex",
+  "Sulfa drugs", "Aspirin", "Ibuprofen",
+  "Eggs", "Milk / Dairy", "Shellfish", "Fish", "Soy", "Wheat / Gluten",
+  "Codeine", "Contrast Dye", "Bee Stings",
+];
+
+const COMMON_MEDICATIONS = [
+  "Metformin", "Metformin XR",
+  "Paracetamol", "Acetaminophen", "Ibuprofen", "Naproxen",
+  "Amlodipine", "Lisinopril", "Losartan", "Metoprolol", "Hydrochlorothiazide",
+  "Omeprazole", "Pantoprazole", "Famotidine",
+  "Atorvastatin", "Simvastatin",
+  "Levothyroxine", "Albuterol",
+  "Cetirizine", "Loratadine", "Fexofenadine",
+  "Gabapentin", "Sertraline", "Escitalopram",
+];
+
+function parseInitialList(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    return value.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
 
 export default function NewDiagnosis() {
   const { user } = useAuth();
@@ -26,42 +70,110 @@ export default function NewDiagnosis() {
   const [allSymptoms, setAllSymptoms] = useState(CORE_SYMPTOMS);
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState("");
+  const [isQueryFocused, setIsQueryFocused] = useState(false);
+  const [symptomActiveIndex, setSymptomActiveIndex] = useState(-1);
   const [manual, setManual] = useState("");
   const [duration, setDuration] = useState("");
   const [notes, setNotes] = useState("");
   const [age, setAge] = useState(user?.age || "");
   const [gender, setGender] = useState(user?.gender || "");
-  const [existing, setExisting] = useState(user?.medical_history || "");
-  const [allergies, setAllergies] = useState(user?.allergies || "");
-  const [meds, setMeds] = useState(user?.current_medicines || "");
+  const [existing, setExisting] = useState(() => parseInitialList(user?.medical_history));
+  const [allergies, setAllergies] = useState(() => parseInitialList(user?.allergies));
+  const [meds, setMeds] = useState(() => parseInitialList(user?.current_medicines));
   const [isPregnant, setIsPregnant] = useState(user?.is_pregnant || false);
   const [isBreastfeeding, setIsBreastfeeding] = useState(user?.is_breastfeeding || false);
   const [kidneyLiver, setKidneyLiver] = useState(user?.kidney_liver_disease || "");
   const [busy, setBusy] = useState(false);
 
+  const searchContainerRef = useRef(null);
+
   useEffect(() => {
     api.get("/symptoms")
-      .then(({ data }) => setAllSymptoms(data.symptoms || CORE_SYMPTOMS))
+      .then(({ data }) => {
+        if (Array.isArray(data.symptoms) && data.symptoms.length > 0) {
+          const combined = Array.from(new Set([...CORE_SYMPTOMS, ...data.symptoms]));
+          setAllSymptoms(combined);
+        }
+      })
       .catch(() => {});
   }, []);
 
-  const suggestions = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    return allSymptoms.filter((s) => s.toLowerCase().includes(q) && !selected.includes(s)).slice(0, 6);
-  }, [query, allSymptoms, selected]);
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsQueryFocused(false);
+        setSymptomActiveIndex(-1);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  const toggle = (s) => setSelected((cur) => cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]);
-  const remove = (s) => setSelected((cur) => cur.filter((x) => x !== s));
+  // Filter matching symptom suggestions
+  const suggestions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allSymptoms
+      .filter((s) => {
+        const isAlreadySelected = selected.some(
+          (sel) => sel.toLowerCase() === s.toLowerCase()
+        );
+        if (isAlreadySelected) return false;
+        if (!q) return isQueryFocused;
+        return s.toLowerCase().includes(q);
+      })
+      .slice(0, 8);
+  }, [query, allSymptoms, selected, isQueryFocused]);
+
+  const toggle = (s) =>
+    setSelected((cur) =>
+      cur.some((x) => x.toLowerCase() === s.toLowerCase())
+        ? cur.filter((x) => x.toLowerCase() !== s.toLowerCase())
+        : [...cur, s]
+    );
+
+  const remove = (s) =>
+    setSelected((cur) => cur.filter((x) => x.toLowerCase() !== s.toLowerCase()));
+
   const addManual = () => {
     const v = manual.trim();
     if (!v) return;
-    if (!selected.includes(v)) setSelected((c) => [...c, v]);
+    const exists = selected.some((x) => x.toLowerCase() === v.toLowerCase());
+    if (!exists) setSelected((c) => [...c, v]);
     setManual("");
   };
+
   const addFromQuery = (s) => {
-    if (!selected.includes(s)) setSelected((c) => [...c, s]);
+    const exists = selected.some((x) => x.toLowerCase() === s.toLowerCase());
+    if (!exists) setSelected((c) => [...c, s]);
     setQuery("");
+    setIsQueryFocused(false);
+    setSymptomActiveIndex(-1);
+  };
+
+  const handleSymptomKeyDown = (e) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!isQueryFocused) setIsQueryFocused(true);
+      setSymptomActiveIndex((prev) =>
+        prev < suggestions.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!isQueryFocused) setIsQueryFocused(true);
+      setSymptomActiveIndex((prev) =>
+        prev > 0 ? prev - 1 : suggestions.length - 1
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (symptomActiveIndex >= 0 && symptomActiveIndex < suggestions.length) {
+        addFromQuery(suggestions[symptomActiveIndex]);
+      } else if (query.trim()) {
+        addFromQuery(query.trim());
+      }
+    } else if (e.key === "Escape") {
+      setIsQueryFocused(false);
+      setSymptomActiveIndex(-1);
+    }
   };
 
   const submit = async () => {
@@ -77,9 +189,9 @@ export default function NewDiagnosis() {
         additional_notes: notes || null,
         age: age ? Number(age) : null,
         gender: gender || null,
-        existing_diseases: existing || null,
-        allergies: allergies || null,
-        current_medicines: meds || null,
+        existing_diseases: existing.length > 0 ? existing : null,
+        allergies: allergies.length > 0 ? allergies : null,
+        current_medicines: meds.length > 0 ? meds : null,
         is_pregnant: gender === "female" ? isPregnant : null,
         is_breastfeeding: gender === "female" ? isBreastfeeding : null,
         kidney_liver_disease: kidneyLiver || null,
@@ -113,7 +225,7 @@ export default function NewDiagnosis() {
           <div className="overline text-muted-foreground">Common symptoms</div>
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
             {CORE_SYMPTOMS.map((s) => {
-              const on = selected.includes(s);
+              const on = selected.some((sel) => sel.toLowerCase() === s.toLowerCase());
               return (
                 <label key={s}
                   data-testid={`symptom-checkbox-${s.toLowerCase().replace(/\s+/g, "-")}`}
@@ -129,41 +241,55 @@ export default function NewDiagnosis() {
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="relative">
+            <div className="relative" ref={searchContainerRef}>
               <div className="overline text-muted-foreground mb-2">Search symptoms</div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="e.g. dizziness"
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setIsQueryFocused(true);
+                    setSymptomActiveIndex(-1);
+                  }}
+                  onFocus={() => setIsQueryFocused(true)}
+                  onKeyDown={handleSymptomKeyDown}
+                  placeholder="e.g. dizziness, chest pain"
                   className="pl-9"
                   data-testid="symptom-search-input"
                 />
               </div>
+
               <AnimatePresence>
-              {suggestions.length > 0 && (
-                <motion.ul
-                  className="mt-2 border border-border rounded-md bg-popover shadow-sm divide-y divide-border"
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.22, ease: "easeOut" }}
-                >
-                  {suggestions.map((s) => (
-                    <motion.li key={s} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
-                      <button
-                        type="button"
-                        onClick={() => addFromQuery(s)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
-                        data-testid={`symptom-suggestion-${s.toLowerCase().replace(/\s+/g, "-")}`}
-                      >
-                        {s}
-                      </button>
-                    </motion.li>
-                  ))}
-                </motion.ul>
-              )}
+                {isQueryFocused && suggestions.length > 0 && (
+                  <motion.ul
+                    role="listbox"
+                    className="absolute left-0 right-0 z-30 mt-1 max-h-52 overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md divide-y divide-border/40"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                  >
+                    {suggestions.map((s, idx) => {
+                      const isActive = idx === symptomActiveIndex;
+                      return (
+                        <li key={s} role="option" aria-selected={isActive}>
+                          <button
+                            type="button"
+                            onClick={() => addFromQuery(s)}
+                            onMouseEnter={() => setSymptomActiveIndex(idx)}
+                            className={`w-full text-left px-3 py-2 text-sm rounded-sm transition-colors duration-150 ${
+                              isActive ? "bg-accent text-accent-foreground font-medium" : "hover:bg-muted"
+                            }`}
+                            data-testid={`symptom-suggestion-${s.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            {s}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </motion.ul>
+                )}
               </AnimatePresence>
             </div>
 
@@ -204,7 +330,7 @@ export default function NewDiagnosis() {
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ duration: 0.18 }}
                       data-testid={`selected-symptom-${s.toLowerCase().replace(/\s+/g, "-")}`}
-                      className="inline-flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-3 py-1 text-sm font-medium"
+                      className="inline-flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-3 py-1 text-sm font-medium border border-border/50"
                     >
                       {s}
                       <button type="button" onClick={() => remove(s)} className="hover:opacity-70">
@@ -218,24 +344,38 @@ export default function NewDiagnosis() {
           )}
         </section>
 
-        <section className="bg-card border border-border rounded-xl p-6">
+        <section className="bg-card border border-border rounded-xl p-6 space-y-6">
           <div className="overline text-muted-foreground">Context (optional but recommended)</div>
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Duration</Label>
-              <Input value={duration} onChange={(e) => setDuration(e.target.value)}
-                placeholder="e.g. 3 days" data-testid="input-duration" className="mt-1" />
+              <Input
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="e.g. 3 days"
+                data-testid="input-duration"
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>Age</Label>
-              <Input type="number" value={age} onChange={(e) => setAge(e.target.value)}
-                data-testid="input-age" className="mt-1" />
+              <Input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                data-testid="input-age"
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>Gender</Label>
-              <select value={gender} onChange={(e) => setGender(e.target.value)}
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
                 data-testid="input-gender"
-                className="mt-1 w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm">
+                className="mt-1 w-full h-10 rounded-md border border-input bg-transparent px-3 text-sm"
+              >
                 <option value="">Prefer not to say</option>
                 <option value="female">Female</option>
                 <option value="male">Male</option>
@@ -243,47 +383,77 @@ export default function NewDiagnosis() {
               </select>
             </div>
             <div>
-              <Label>Existing conditions</Label>
-              <Input value={existing} onChange={(e) => setExisting(e.target.value)}
-                placeholder="e.g. asthma, diabetes"
-                data-testid="input-existing" className="mt-1" />
-            </div>
-            <div>
-              <Label>Allergies</Label>
-              <Input value={allergies} onChange={(e) => setAllergies(e.target.value)}
-                placeholder="e.g. penicillin, peanuts"
-                data-testid="input-allergies" className="mt-1" />
-            </div>
-            <div>
-              <Label>Current medicines</Label>
-              <Input value={meds} onChange={(e) => setMeds(e.target.value)}
-                placeholder="e.g. metformin"
-                data-testid="input-meds" className="mt-1" />
-            </div>
-            <div>
               <Label>Kidney or liver disease</Label>
-              <Input value={kidneyLiver} onChange={(e) => setKidneyLiver(e.target.value)}
+              <Input
+                value={kidneyLiver}
+                onChange={(e) => setKidneyLiver(e.target.value)}
                 placeholder="e.g. chronic kidney disease"
-                data-testid="input-kidney-liver" className="mt-1" />
+                data-testid="input-kidney-liver"
+                className="mt-1"
+              />
             </div>
-            {gender === "female" && (
-              <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                  <Checkbox checked={isPregnant} onCheckedChange={(v) => setIsPregnant(!!v)} data-testid="checkbox-pregnant" />
-                  Currently pregnant
-                </label>
-                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                  <Checkbox checked={isBreastfeeding} onCheckedChange={(v) => setIsBreastfeeding(!!v)} data-testid="checkbox-breastfeeding" />
-                  Currently breastfeeding
-                </label>
-              </div>
-            )}
           </div>
-          <div className="mt-4">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+            <AutocompleteMultiSelect
+              label="Existing conditions"
+              placeholder="Search or type e.g. asthma, diabetes..."
+              predefinedItems={COMMON_CONDITIONS}
+              selectedItems={existing}
+              onChange={setExisting}
+              testId="input-existing"
+            />
+
+            <AutocompleteMultiSelect
+              label="Allergies"
+              placeholder="Search or type e.g. penicillin, peanuts..."
+              predefinedItems={COMMON_ALLERGIES}
+              selectedItems={allergies}
+              onChange={setAllergies}
+              testId="input-allergies"
+            />
+
+            <AutocompleteMultiSelect
+              label="Current medicines"
+              placeholder="Search or type e.g. metformin, paracetamol..."
+              predefinedItems={COMMON_MEDICATIONS}
+              selectedItems={meds}
+              onChange={setMeds}
+              testId="input-meds"
+            />
+          </div>
+
+          {gender === "female" && (
+            <div className="flex items-center gap-6 pt-2 border-t border-border/40">
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox
+                  checked={isPregnant}
+                  onCheckedChange={(v) => setIsPregnant(!!v)}
+                  data-testid="checkbox-pregnant"
+                />
+                Currently pregnant
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox
+                  checked={isBreastfeeding}
+                  onCheckedChange={(v) => setIsBreastfeeding(!!v)}
+                  data-testid="checkbox-breastfeeding"
+                />
+                Currently breastfeeding
+              </label>
+            </div>
+          )}
+
+          <div className="pt-2">
             <Label>Additional notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               placeholder="Anything else the AI should know…"
-              data-testid="input-notes" className="mt-1" rows={3} />
+              data-testid="input-notes"
+              className="mt-1"
+              rows={3}
+            />
           </div>
         </section>
 

@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from server import app, detect_emergency_warning, filter_otc_medicines, build_diagnosis_prompt, resolve_diagnosis_context, PredictInput
 
-print("Starting 13 Medical Scenario Safety Tests...")
+print("Starting 14 Medical Scenario & Autocomplete Payload Safety Tests...")
 
 # Scenario 1: Adult with simple headache
 def test_scenario_1_adult_headache():
@@ -174,6 +174,24 @@ def test_scenario_13_drug_interaction():
     assert "Aspirin" in prompt
     print("Scenario 13 Passed: Drug combination question captured in prompt.")
 
+# Scenario 14: Array List Payloads from Autocomplete Multi-Selects
+def test_scenario_14_array_list_payloads():
+    payload = {
+        "symptoms": ["Headache", "Fever"],
+        "existing_diseases": ["Diabetes", "Type 2 diabetes", "Hypertension"],
+        "allergies": ["Penicillin", "Peanuts"],
+        "current_medicines": ["Metformin", "Paracetamol"],
+        "age": 45,
+        "gender": "male",
+    }
+    input_model = PredictInput(**payload)
+    context = resolve_diagnosis_context(input_model, {})
+    prompt = build_diagnosis_prompt(context)
+    assert "Diabetes, Type 2 diabetes, Hypertension" in prompt
+    assert "Penicillin, Peanuts" in prompt
+    assert "Metformin, Paracetamol" in prompt
+    print("Scenario 14 Passed: Array list payloads from autocomplete multi-selects formatted into clinical prompt.")
+
 if __name__ == "__main__":
     test_scenario_1_adult_headache()
     test_scenario_2_child_fever()
@@ -188,4 +206,5 @@ if __name__ == "__main__":
     test_scenario_11_insufficient_info()
     test_scenario_12_exact_dose()
     test_scenario_13_drug_interaction()
-    print("ALL 13 MEDICAL SCENARIO SAFETY TESTS PASSED SUCCESSFULLY!")
+    test_scenario_14_array_list_payloads()
+    print("ALL 14 MEDICAL SCENARIO SAFETY & AUTOCOMPLETE TESTS PASSED SUCCESSFULLY!")
