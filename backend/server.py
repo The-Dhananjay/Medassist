@@ -482,6 +482,11 @@ def build_app() -> FastAPI:
     register_middleware(application)
     register_exception_handlers(application)
     application.include_router(api_router)
+
+    @application.get("/health")
+    async def health_check() -> dict[str, str]:
+        return {"status": "healthy", "service": "MedAssist API"}
+
     return application
 
 
@@ -2709,6 +2714,11 @@ async def delete_report(
 @api_router.get("/symptoms")
 async def list_symptoms() -> dict[str, list[str]]:
     return {"symptoms": COMMON_SYMPTOMS}
+
+
+@api_router.get("/health")
+async def api_health_check() -> dict[str, str]:
+    return {"status": "healthy", "service": "MedAssist API"}
 
 
 @api_router.get("/")
