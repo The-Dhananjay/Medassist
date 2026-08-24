@@ -2137,19 +2137,55 @@ def normalize_prediction(
                         "side_effects": normalize_optional_text(str(opt.get("side_effects")), lower=False),
                         "dosing_info": normalize_optional_text(str(opt.get("dosing_info")), lower=False),
                     })
+        
+        if not opts and status == "appropriate":
+            # Construct structured OTC options from recommended_medicines
+            collected_recs = []
+            for dis in normalized_diseases:
+                for med in dis.get("recommended_medicines", []):
+                    if med not in collected_recs:
+                        collected_recs.append(med)
+            
+            for rec in collected_recs[:4]:
+                opts.append({
+                    "generic_name": rec,
+                    "purpose": "Targeted symptom relief for reported presentation",
+                    "who_should_avoid": "Avoid if known allergy, severe liver/kidney impairment, or pregnancy unless approved by physician",
+                    "interactions": "Check with a doctor or pharmacist if taking other current medications",
+                    "side_effects": "Mild gastric upset or drowsiness depending on individual sensitivity",
+                    "dosing_info": "Use lowest effective dose for shortest necessary duration according to package label"
+                })
+
         medication_guidance = {
             "status": status if status in {"appropriate", "insufficient_info", "urgent_red_flag"} else "appropriate",
             "summary": normalize_optional_text(str(raw_med_guidance.get("summary", "")), lower=False)
-            or ("No self-treatment medication is recommended." if status == "urgent_red_flag" else ("More information is needed before recommending a medication." if status == "insufficient_info" else "Medication options for self-care.")),
+            or ("No self-treatment medication is recommended." if status == "urgent_red_flag" else ("More information is needed before recommending a medication." if status == "insufficient_info" else "Medication options for supportive self-care.")),
             "missing_fields": normalize_string_list(raw_med_guidance.get("missing_fields")),
             "options": opts
         }
     else:
+        collected_recs = []
+        for dis in normalized_diseases:
+            for med in dis.get("recommended_medicines", []):
+                if med not in collected_recs:
+                    collected_recs.append(med)
+
+        opts = []
+        for rec in collected_recs[:4]:
+            opts.append({
+                "generic_name": rec,
+                "purpose": "Targeted symptom relief for reported presentation",
+                "who_should_avoid": "Avoid if known allergy, severe liver/kidney impairment, or pregnancy unless approved by physician",
+                "interactions": "Check with a doctor or pharmacist if taking other current medications",
+                "side_effects": "Mild gastric upset or drowsiness depending on individual sensitivity",
+                "dosing_info": "Use lowest effective dose for shortest necessary duration according to package label"
+            })
+
         medication_guidance = {
             "status": "appropriate",
             "summary": "General self-care medication options when safe. Consult a healthcare professional before starting any medication.",
             "missing_fields": [],
-            "options": []
+            "options": opts
         }
 
     general_advice = normalize_optional_text(

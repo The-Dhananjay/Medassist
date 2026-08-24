@@ -56,11 +56,16 @@ function Section({ icon: Icon, title, items }) {
   );
 }
 
-function MedicationOptionsSection({ medicationGuidance, emergency }) {
+function MedicationOptionsSection({ medicationGuidance, emergency, diseases = [] }) {
   const isUrgent = !!emergency || medicationGuidance?.status === "urgent_red_flag";
   const isInsufficient = !isUrgent && medicationGuidance?.status === "insufficient_info";
   const options = medicationGuidance?.options || [];
   const missingFields = medicationGuidance?.missing_fields || [];
+
+  // Fallback options from diseases if options array is empty
+  const fallbackMedicines = Array.from(
+    new Set(diseases.flatMap((d) => d.recommended_medicines || []).filter(Boolean))
+  );
 
   return (
     <section className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4" data-testid="medication-options-section">
@@ -141,9 +146,29 @@ function MedicationOptionsSection({ medicationGuidance, emergency }) {
                 </div>
               ))}
             </div>
+          ) : fallbackMedicines.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {fallbackMedicines.map((med, idx) => (
+                <div key={idx} className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
+                  <div className="font-semibold text-primary text-base">{med}</div>
+                  <div className="text-xs">
+                    <span className="font-medium text-foreground">Purpose:</span>{" "}
+                    <span className="text-muted-foreground">Supportive OTC self-care for reported symptoms</span>
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-medium text-destructive">Who should avoid it:</span>{" "}
+                    <span className="text-muted-foreground">Avoid if known allergy or severe organ impairment</span>
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-medium text-primary">Dosing info:</span>{" "}
+                    <span className="text-foreground">Follow package labeling or consult a pharmacist</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="text-sm text-muted-foreground italic">
-              No specific self-treatment medications identified. Maintain hydration and rest, and consult a physician if symptoms persist.
+              Maintain hydration and rest. Consult a healthcare professional or pharmacist for specific medication choices.
             </div>
           )}
         </div>
@@ -383,7 +408,7 @@ export default function ReportDetail() {
           </div>
         )}
 
-        <MedicationOptionsSection medicationGuidance={medicationGuidance} emergency={emergency} />
+        <MedicationOptionsSection medicationGuidance={medicationGuidance} emergency={emergency} diseases={diseases} />
 
         <Disclaimer />
       </main>
