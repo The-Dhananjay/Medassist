@@ -22,7 +22,10 @@ export default function AutocompleteMultiSelect({
   const listboxId = useId();
 
   // Selected items array safety
-  const items = Array.isArray(selectedItems) ? selectedItems : [];
+  const items = useMemo(
+    () => (Array.isArray(selectedItems) ? selectedItems : []),
+    [selectedItems]
+  );
 
   // Filter matching suggestions
   const suggestions = useMemo(() => {
