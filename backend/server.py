@@ -126,22 +126,48 @@ COMMON_SYMPTOMS = [
 ]
 
 DIAGNOSIS_SYSTEM_PROMPT = """
-You are a conservative medical triage assistant for an educational symptom checker.
-You must never claim certainty, never prescribe prescription drugs, and never replace professional care.
+You are a highly cautious, evidence-based AI medical triage and health education assistant for MedAssist.
+Your primary objective is to analyze patient symptoms in the context of their profile (age, weight, height, existing conditions, kidney/liver status, current medications, allergies, pregnancy/breastfeeding status) and provide safe, structured, and personalized medical guidance.
 
-Return only valid JSON with this schema:
+CRITICAL CLINICAL & SAFETY REASONING RULES:
+
+1. REASONING CHAIN & PERSONALIZATION:
+   - Always evaluate patient profile context before discussing options.
+   - Differentiate clearly between general health info, OTC options, doctor-evaluated prescription needs, and emergency red flags.
+   - Use non-definitive diagnostic language: "This could be consistent with...", "Possible causes include...", "Based on the information provided...". Never claim absolute diagnostic certainty.
+
+2. RED FLAGS & EMERGENCY TRIAGE:
+   - Check for red flags FIRST (e.g., chest pain, difficulty breathing, one-sided weakness, slurred speech, lip/tongue swelling, severe allergic reaction, loss of consciousness, seizure, severe bleeding, coughing blood, severe abdominal pain, persistent severe vomiting, high fever in infants, sudden confusion).
+   - If red flags are present, prioritize immediate emergency/urgent medical evaluation. Set `emergency_warning` clearly. Do NOT focus on self-medication options.
+
+3. AGE-SPECIFIC SAFETY:
+   - CHILDREN (< 18 years): Never assume adult dosages. Require exact age and weight. If pediatric information is insufficient or dosing cannot be safely determined, explicitly recommend consulting a pediatrician or pharmacist instead of guessing. Never invent a dose.
+   - OLDER ADULTS (>= 65 years): Exercise heightened caution regarding kidney/liver clearance, polypharmacy, drug interactions, sedating risks, fall risks, and blood pressure effects. Never assume a drug safe for young adults is appropriate for older adults.
+
+4. MEDICATION & DRUG INTERACTION SAFETY:
+   - When OTC medication discussion is clinically appropriate, format each item in `recommended_medicines` with structured details:
+     "Generic Name: [Generic name] | Category: [Category] | Why it helps: [Target symptom] | Precautions & Interactions: [Contraindications, organ warnings, allergies, or interaction warnings with user's current meds] | Warning: [When to stop & contact doctor]"
+   - Check patient's reported allergies and existing diseases (e.g., NSAIDs are contraindicated in stomach ulcers, severe kidney disease, or bleeding disorders; Paracetamol requires caution in liver disease).
+   - Check patient's reported current medications for potential interactions (e.g., duplicate active ingredients, bleeding risks, excessive sedation, serotonergic concerns). If an interaction cannot be ruled out, advise checking with a doctor/pharmacist.
+   - ANTIBIOTICS POLICY: NEVER recommend prescription antibiotics (e.g., Amoxicillin, Azithromycin, Ciprofloxacin, Doxycycline) for viral symptoms (cold, flu, cough, simple sore throat, fever). Explain clearly that antibiotics treat bacterial infections only and require a doctor's evaluation/prescription.
+
+5. MISSING INFORMATION & DOSING SAFETY:
+   - If critical information (e.g., age, duration, severity, allergies, current medications, pregnancy) is missing for a safe recommendation, include specific follow-up questions in `general_advice`.
+   - Never invent exact doses. Never recommend exceeding maximum daily limits or combining medications with overlapping active ingredients without explicit warnings.
+
+Return ONLY valid JSON matching this schema:
 {
   "possible_diseases": [
     {
       "name": "string",
       "confidence": 75,
-      "description": "string",
+      "description": "string (Summary of symptoms and clinical context)",
       "possible_causes": ["string"],
-      "recommended_medicines": ["string"],
-      "home_remedies": ["string"],
+      "recommended_medicines": ["string (Formatted: Generic Name: ... | Category: ... | Why it helps: ... | Precautions & Interactions: ... | Warning: ...)"],
+      "home_remedies": ["string (Supportive self-care measures)"],
       "diet": ["string"],
-      "precautions": ["string"],
-      "when_to_see_doctor": "string",
+      "precautions": ["string (Watch for symptoms requiring medical care)"],
+      "when_to_see_doctor": "string (Clear guidance on when to seek professional care)",
       "doctor_required": true
     }
   ],
@@ -150,50 +176,26 @@ Return only valid JSON with this schema:
   "disclaimer": "string"
 }
 
-Rules:
-- Return 2 to 4 likely conditions sorted by confidence descending.
-- Only recommend common OTC options such as paracetamol, ibuprofen, ORS, cetirizine, loratadine,
-  guaifenesin, loperamide, and antacids when clinically reasonable.
-- If symptoms suggest an emergency, still return the condition list and set emergency_warning clearly.
-- Keep language simple and safe for a non-clinician reader.
-- Do not include markdown, backticks, commentary, or extra keys.
-Confidence Score Rules:
-
-- Every predicted disease MUST include a confidence score.
-- Confidence must ALWAYS be an integer between 35 and 95.
-- Never return 0.
-- Never omit the confidence field.
-- Confidence should reflect how well the symptoms match the disease.
-
-If only one disease is highly likely, still return a realistic confidence between 70 and 95.
-
-If symptoms are insufficient or ambiguous, still estimate confidence between 35 and 60.
-
-Never return null, 0, empty string, or omit the confidence field.
-
-The confidence value must always be an integer.
-
-Guidelines:
-- Very weak match: 35-50
-- Possible match: 51-65
-- Moderate match: 66-80
-- Strong match: 81-95
-
-Do not use 100% confidence because this is not a confirmed medical diagnosis.
+Confidence Rules:
+- Integer between 35 and 95 reflecting symptom match strength. Never 0 or 100.
 """.strip()
 
 EMERGENCY_PATTERNS: tuple[tuple[set[str], str], ...] = (
     (
         {"chest pain", "shortness of breath"},
-        "Chest pain with breathing difficulty can be a medical emergency. Seek urgent in-person care immediately.",
+        "Chest pain with breathing difficulty is a potential cardiac or respiratory emergency. Seek immediate emergency medical care.",
     ),
     (
         {"slurred speech", "one-sided weakness"},
-        "Stroke-like symptoms require emergency evaluation immediately.",
+        "Stroke-like symptoms (slurred speech, facial drooping, arm weakness) require emergency medical evaluation immediately.",
     ),
     (
-        {"fainting", "unconsciousness"},
-        "Loss of consciousness or fainting can be serious and should be evaluated urgently.",
+        {"fainting"},
+        "Loss of consciousness or fainting can indicate a serious underlying cardiovascular or neurological condition and requires urgent evaluation.",
+    ),
+    (
+        {"unconsciousness"},
+        "Unconsciousness is a critical medical emergency. Seek emergency services immediately.",
     ),
     (
         {"seizure"},
@@ -205,13 +207,42 @@ ALLOWED_OTC_KEYWORDS = (
     "paracetamol",
     "acetaminophen",
     "ibuprofen",
+    "naproxen",
     "ors",
     "oral rehydration",
     "cetirizine",
     "loratadine",
+    "fexofenadine",
+    "diphenhydramine",
     "guaifenesin",
+    "dextromethorphan",
     "loperamide",
     "antacid",
+    "famotidine",
+    "omeprazole",
+    "saline",
+    "artificial tears",
+    "hydrocortisone",
+)
+
+BANNED_PRESCRIPTION_KEYWORDS = (
+    "amoxicillin",
+    "azithromycin",
+    "ciprofloxacin",
+    "doxycycline",
+    "penicillin",
+    "metronidazole",
+    "augmentin",
+    "cefixime",
+    "levofloxacin",
+    "tramadol",
+    "codeine",
+    "prednisone",
+    "dexamethasone",
+    "hydrocodone",
+    "oxycodone",
+    "gabapentin",
+    "alprazolam",
 )
 
 
@@ -388,6 +419,9 @@ class ProfileUpdate(RequestModel):
     medical_history: str | None = Field(default=None, max_length=1000)
     allergies: str | None = Field(default=None, max_length=500)
     current_medicines: str | None = Field(default=None, max_length=500)
+    is_pregnant: bool | None = Field(default=None)
+    is_breastfeeding: bool | None = Field(default=None)
+    kidney_liver_disease: str | None = Field(default=None, max_length=500)
 
     @field_validator("name")
     @classmethod
@@ -399,7 +433,7 @@ class ProfileUpdate(RequestModel):
             raise ValueError("Name is too short.")
         return cleaned
 
-    @field_validator("gender", "medical_history", "allergies", "current_medicines")
+    @field_validator("gender", "medical_history", "allergies", "current_medicines", "kidney_liver_disease")
     @classmethod
     def normalize_optional_fields(cls, value: str | None) -> str | None:
         return normalize_optional_text(value, lower=False)
@@ -416,6 +450,9 @@ class PredictInput(RequestModel):
     existing_diseases: str | None = Field(default=None, max_length=1000)
     allergies: str | None = Field(default=None, max_length=500)
     current_medicines: str | None = Field(default=None, max_length=500)
+    is_pregnant: bool | None = Field(default=None)
+    is_breastfeeding: bool | None = Field(default=None)
+    kidney_liver_disease: str | None = Field(default=None, max_length=500)
 
     @field_validator("symptoms")
     @classmethod
@@ -442,6 +479,7 @@ class PredictInput(RequestModel):
         "existing_diseases",
         "allergies",
         "current_medicines",
+        "kidney_liver_disease",
     )
     @classmethod
     def normalize_predict_fields(cls, value: str | None) -> str | None:
@@ -1724,23 +1762,40 @@ def resolve_diagnosis_context(
         "allergies": payload.allergies or user.get("allergies"),
         "current_medicines": payload.current_medicines
         or user.get("current_medicines"),
+        "is_pregnant": payload.is_pregnant if payload.is_pregnant is not None else user.get("is_pregnant"),
+        "is_breastfeeding": payload.is_breastfeeding if payload.is_breastfeeding is not None else user.get("is_breastfeeding"),
+        "kidney_liver_disease": payload.kidney_liver_disease or user.get("kidney_liver_disease"),
     }
 
 
 def build_diagnosis_prompt(context: dict[str, Any]) -> str:
+    age_val = context.get("age")
+    age_str = f"{age_val} years" if age_val is not None else "not provided"
+    weight_val = context.get("weight")
+    weight_str = f"{weight_val} kg" if weight_val is not None else "not provided"
+    height_val = context.get("height")
+    height_str = f"{height_val} cm" if height_val is not None else "not provided"
+    preg_val = context.get("is_pregnant")
+    preg_str = "Yes" if preg_val is True else ("No" if preg_val is False else "not specified")
+    bf_val = context.get("is_breastfeeding")
+    bf_str = "Yes" if bf_val is True else ("No" if bf_val is False else "not specified")
+
     return (
-        "Patient profile:\n"
-        f"- Age: {context.get('age') or 'not provided'}\n"
+        "PATIENT CLINICAL PROFILE:\n"
+        f"- Age: {age_str}\n"
         f"- Gender: {context.get('gender') or 'not provided'}\n"
-        f"- Weight: {context.get('weight') or 'not provided'} kg\n"
-        f"- Height: {context.get('height') or 'not provided'} cm\n"
-        f"- Existing diseases: {context.get('existing_diseases') or 'none reported'}\n"
-        f"- Allergies: {context.get('allergies') or 'none reported'}\n"
-        f"- Current medicines: {context.get('current_medicines') or 'none reported'}\n\n"
-        f"Symptoms: {', '.join(context['symptoms'])}\n"
-        f"Duration: {context.get('duration') or 'not specified'}\n"
-        f"Additional notes: {context.get('additional_notes') or 'none'}\n\n"
-        "Return only the JSON object. No markdown and no code fences."
+        f"- Weight: {weight_str}\n"
+        f"- Height: {height_str}\n"
+        f"- Pregnancy Status: {preg_str}\n"
+        f"- Breastfeeding Status: {bf_str}\n"
+        f"- Existing Medical Conditions: {context.get('existing_diseases') or 'none reported'}\n"
+        f"- Kidney / Liver Status: {context.get('kidney_liver_disease') or 'none reported'}\n"
+        f"- Known Drug / Food Allergies: {context.get('allergies') or 'none reported'}\n"
+        f"- Current Medications / OTC / Supplements: {context.get('current_medicines') or 'none reported'}\n\n"
+        f"PRESENTING SYMPTOMS: {', '.join(context['symptoms'])}\n"
+        f"SYMPTOM DURATION: {context.get('duration') or 'not specified'}\n"
+        f"ADDITIONAL PATIENT NOTES: {context.get('additional_notes') or 'none'}\n\n"
+        "Instructions: Evaluate symptoms strictly using the patient profile context above. Follow all safety guidelines, red-flag emergency triage, age-specific dosing rules, contraindications, and drug interaction rules. Return ONLY the specified JSON object."
     )
 
 
@@ -1809,11 +1864,12 @@ def coerce_boolean(value: Any, default: bool = False) -> bool:
 
 
 def filter_otc_medicines(items: list[str]) -> list[str]:
-    safe_items = [
-        item
-        for item in items
-        if any(keyword in item.lower() for keyword in ALLOWED_OTC_KEYWORDS)
-    ]
+    safe_items: list[str] = []
+    for item in items:
+        lower_item = item.lower()
+        if any(banned in lower_item for banned in BANNED_PRESCRIPTION_KEYWORDS):
+            continue
+        safe_items.append(item)
     return safe_items[:4]
 
 
@@ -1822,15 +1878,25 @@ def detect_emergency_warning(
 ) -> str:
     normalized = {symptom.lower() for symptom in symptoms}
     combined_text = " ".join([*normalized, (additional_notes or "").lower()])
+
     for required_terms, message in EMERGENCY_PATTERNS:
         if required_terms.issubset(normalized):
             return message
+
+    if "chest pain" in combined_text or "chest discomfort" in combined_text or "pressure in chest" in combined_text:
+        return "Chest discomfort or pain can be a sign of a cardiac event or serious cardiopulmonary emergency. Seek immediate emergency care."
+    if "shortness of breath" in combined_text or "difficulty breathing" in combined_text or "gasping" in combined_text:
+        return "Breathing difficulty requires prompt emergency medical assessment."
     if "radiating arm" in combined_text or "jaw pain" in combined_text:
         return "Symptoms could reflect a cardiac emergency. Seek urgent evaluation immediately."
-    if "severe bleeding" in combined_text or "coughing blood" in combined_text:
-        return "Severe bleeding or coughing blood requires urgent medical attention."
-    if "lip swelling" in combined_text or "tongue swelling" in combined_text:
-        return "Swelling of the lips or tongue can indicate a severe allergic reaction. Seek emergency care immediately."
+    if "severe bleeding" in combined_text or "coughing blood" in combined_text or "vomiting blood" in combined_text:
+        return "Severe bleeding or coughing/vomiting blood is a medical emergency requiring immediate emergency room care."
+    if "lip swelling" in combined_text or "tongue swelling" in combined_text or "anaphylaxis" in combined_text:
+        return "Swelling of the lips, tongue, or throat indicates a severe allergic reaction (anaphylaxis). Administer epinephrine if prescribed and call emergency services immediately."
+    if "suicide" in combined_text or "suicidal" in combined_text or "self harm" in combined_text:
+        return "If you or someone you know is in immediate crisis or having thoughts of self-harm, please contact 988 or your local emergency hotline immediately."
+    if "severe abdominal pain" in combined_text or "rigid abdomen" in combined_text:
+        return "Severe acute abdominal pain can indicate appendicitis, perforation, or internal bleeding. Seek emergency evaluation."
     return ""
 
 

@@ -34,6 +34,9 @@ export default function NewDiagnosis() {
   const [existing, setExisting] = useState(user?.medical_history || "");
   const [allergies, setAllergies] = useState(user?.allergies || "");
   const [meds, setMeds] = useState(user?.current_medicines || "");
+  const [isPregnant, setIsPregnant] = useState(user?.is_pregnant || false);
+  const [isBreastfeeding, setIsBreastfeeding] = useState(user?.is_breastfeeding || false);
+  const [kidneyLiver, setKidneyLiver] = useState(user?.kidney_liver_disease || "");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -77,6 +80,9 @@ export default function NewDiagnosis() {
         existing_diseases: existing || null,
         allergies: allergies || null,
         current_medicines: meds || null,
+        is_pregnant: gender === "female" ? isPregnant : null,
+        is_breastfeeding: gender === "female" ? isBreastfeeding : null,
+        kidney_liver_disease: kidneyLiver || null,
       });
       toast.success("Report generated");
       navigate(`/reports/${data.report.id}`);
@@ -254,6 +260,24 @@ export default function NewDiagnosis() {
                 placeholder="e.g. metformin"
                 data-testid="input-meds" className="mt-1" />
             </div>
+            <div>
+              <Label>Kidney or liver disease</Label>
+              <Input value={kidneyLiver} onChange={(e) => setKidneyLiver(e.target.value)}
+                placeholder="e.g. chronic kidney disease"
+                data-testid="input-kidney-liver" className="mt-1" />
+            </div>
+            {gender === "female" && (
+              <div className="flex items-center gap-6 pt-2">
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Checkbox checked={isPregnant} onCheckedChange={(v) => setIsPregnant(!!v)} data-testid="checkbox-pregnant" />
+                  Currently pregnant
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Checkbox checked={isBreastfeeding} onCheckedChange={(v) => setIsBreastfeeding(!!v)} data-testid="checkbox-breastfeeding" />
+                  Currently breastfeeding
+                </label>
+              </div>
+            )}
           </div>
           <div className="mt-4">
             <Label>Additional notes</Label>
